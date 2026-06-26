@@ -1,0 +1,74 @@
+/* ============================================================
+   EFFECTS  —  radii, shadows, textures, motion  (Tuttle Twins)
+   Rounded & organic. Soft drop shadows. Watercolor-sky page.
+   ============================================================ */
+
+:root {
+  /* ---- Corner radii (generous, organic: 18–26px) ---- */
+  --radius-xs:   8px;   /* chips, small inputs */
+  --radius-sm:   14px;  /* buttons, notes, inputs */
+  --radius-md:   18px;  /* panels */
+  --radius:      22px;  /* DEFAULT card radius */
+  --radius-lg:   26px;  /* large feature cards */
+  --radius-pill: 999px; /* pills, tags, avatars */
+
+  /* ---- Shadows (soft, teal-tinted, never harsh black) ---- */
+  --shadow-sm:  0 8px 22px -16px rgba(23, 51, 52, .55);
+  --shadow:     0 18px 40px -28px rgba(23, 51, 52, .45);
+  --shadow-lg:  0 28px 60px -30px rgba(23, 51, 52, .42);
+  --shadow-pop: 0 14px 30px -16px rgba(23, 51, 52, .35); /* lifted buttons/toasts */
+
+  /* ---- Focus ring ---- */
+  --ring: 0 0 0 3px var(--tt-gold);
+
+  /* ---- Motion (gentle, friendly — slight bounce, no harsh snaps) ---- */
+  --ease-out:    cubic-bezier(.2, .9, .3, 1);   /* @kind other */
+  --ease-bounce: cubic-bezier(.34, 1.56, .64, 1); /* @kind other */
+  --dur-fast: .15s; /* @kind other */
+  --dur:      .24s; /* @kind other */
+  --dur-slow: .4s;  /* @kind other */
+
+  /* ---- Signature backgrounds ---- */
+
+  /* Watercolor-sky page wash: pale cyan base + soft pink/white radial blooms */
+  --bg-watercolor:
+    radial-gradient(60% 50% at 12% 8%,  rgba(240, 91, 153, .16), transparent 60%),
+    radial-gradient(55% 45% at 92% 14%, rgba(255, 255, 255, .55), transparent 60%),
+    radial-gradient(70% 60% at 88% 92%, rgba(240, 91, 153, .13), transparent 60%),
+    radial-gradient(60% 55% at 8% 88%,  rgba(255, 255, 255, .45), transparent 60%);
+
+  /* Fine film grain (apply as an ::before overlay at ~0.05 opacity) */
+  --grain-url: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E"); /* @kind other */
+
+  /* Woven grain over flat fills (5px grid, low opacity) */
+  --weave:
+    linear-gradient(rgba(255, 255, 255, .25) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, .25) 1px, transparent 1px); /* @kind other */
+  --weave-size: 5px 5px;
+}
+
+/* ------------------------------------------------------------
+   Optional helpers — opt-in classes for the signature surfaces.
+   (Tokens above are the primary API; these are conveniences.)
+   ------------------------------------------------------------ */
+
+.tt-bg-sky {
+  background-color: var(--tt-cyan);
+  background-image: var(--bg-watercolor);
+  background-attachment: fixed;
+}
+
+.tt-grain::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: .05;
+  background-image: var(--grain-url);
+}
+
+.tt-card {
+  background: var(--surface-card);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+}

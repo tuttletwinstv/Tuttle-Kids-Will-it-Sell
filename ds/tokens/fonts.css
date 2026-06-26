@@ -1,0 +1,33 @@
+/* Londrina Solid — the single Tuttle Twins typeface (Google Fonts, open-source) */
+
+@font-face {
+  font-family: "Londrina Solid";
+  font-style: normal;
+  font-weight: 100;
+  font-display: swap;
+  src: url("../assets/fonts/LondrinaSolid-Thin.ttf") format("truetype");
+}
+
+@font-face {
+  font-family: "Londrina Solid";
+  font-style: normal;
+  font-weight: 300;
+  font-display: swap;
+  src: url("../assets/fonts/LondrinaSolid-Light.ttf") format("truetype");
+}
+
+@font-face {
+  font-family: "Londrina Solid";
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("../assets/fonts/LondrinaSolid-Regular.ttf") format("truetype");
+}
+
+@font-face {
+  font-family: "Londrina Solid";
+  font-style: normal;
+  font-weight: 900;
+  font-display: swap;
+  src: url("../assets/fonts/LondrinaSolid-Black.ttf") format("truetype");
+}

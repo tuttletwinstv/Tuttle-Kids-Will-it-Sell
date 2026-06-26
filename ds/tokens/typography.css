@@ -1,0 +1,45 @@
+/* ============================================================
+   TYPOGRAPHY  —  Tuttle Twins
+   One family: Londrina Solid. Tracking 0.05em on all weights.
+   Light(300) body · Regular(400) subheads/highlights · Black(900) titles/headlines
+   ============================================================ */
+
+:root {
+  /* Family */
+  --font-display: "Londrina Solid", system-ui, sans-serif;
+  --font-body:    "Londrina Solid", system-ui, sans-serif;
+
+  /* Weights */
+  --fw-thin:  100; /* @kind font */
+  --fw-light: 300; /* @kind font */
+  --fw-reg:   400; /* @kind font */
+  --fw-black: 900; /* @kind font */
+
+  /* Tracking — "tracking 50" on every weight */
+  --tracking: 0.05em;
+  --tracking-loose: 0.1em;  /* small all-caps eyebrows/pills */
+  --tracking-wide:  0.16em; /* tiny eyebrow labels */
+
+  /* Line heights */
+  --lh-body:    1.5;  /* @kind font */
+  --lh-heading: 1.04; /* @kind font */
+  --lh-snug:    1.2;  /* @kind font */
+
+  /* ---- Type scale (display-forward, rounded numbers) ---- */
+  --fs-display: 5.25rem; /* 84px — hero wordmark */
+  --fs-h1:      3rem;    /* 48px — titles */
+  --fs-h2:      2.25rem; /* 36px — section titles */
+  --fs-h3:      1.625rem;/* 26px — headlines */
+  --fs-h4:      1.25rem; /* 20px — subheads */
+  --fs-lead:    1.375rem;/* 22px — lede / intro body */
+  --fs-body:    1.0625rem;/* 17px — body */
+  --fs-sm:      0.9375rem;/* 15px — small body / captions */
+  --fs-xs:      0.8125rem;/* 13px — eyebrow / pill labels */
+
+  /* ---- Semantic type aliases ---- */
+  --type-title-weight:    var(--fw-black);
+  --type-title-transform: uppercase;
+  --type-headline-weight: var(--fw-black);
+  --type-subhead-weight:  var(--fw-reg);
+  --type-body-weight:     var(--fw-light);
+}

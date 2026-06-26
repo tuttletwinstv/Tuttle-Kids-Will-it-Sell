@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Apply — Tuttle Twins Entrepreneur Series</title>
+<link rel="stylesheet" href="ds/styles.css">
+<link rel="stylesheet" href="site.css">
+</head>
+<body>
+<div class="app" data-screen-label="Apply / Submission form">
+
+  <header class="deadline">
+    <span class="dl-label">Applications close <b>July 13</b></span>
+    <div class="countdown" data-countdown>
+      <div class="cd-unit" data-unit="d"><span class="n">--</span><span class="l">days</span></div>
+      <div class="cd-unit" data-unit="h"><span class="n">--</span><span class="l">hrs</span></div>
+      <div class="cd-unit" data-unit="m"><span class="n">--</span><span class="l">min</span></div>
+      <div class="cd-unit" data-unit="s"><span class="n">--</span><span class="l">sec</span></div>
+    </div>
+  </header>
+
+  <nav class="appbar">
+    <a class="backlink" href="index.html">← Back</a>
+    <a class="wordmark" href="index.html" style="font-size:1rem;">Tuttle Twins</a>
+  </nav>
+
+  <section class="section" style="padding-bottom:8px;">
+    <p class="eyebrow">Submission</p>
+    <h1 class="slab" style="font-size:2.1rem;"><span style="text-align: center">Apply now</span></h1>
+    <div class="note" style="margin-top:18px;">
+      <div>Before you submit, check out <a href="success.html"><b>How to be Successful</b></a> for tips that make a real difference.</div>
+    </div>
+  </section>
+
+  <form class="section" style="padding-top:8px;" onsubmit="return submitApp(event)">
+
+    <!-- About the kid(s) -->
+    <p class="subhead">About the applicant(s)</p>
+
+    <div class="field">
+      <label>Full name(s) <span class="req">*</span></label>
+      <span class="hint">If applying as a family, list all kids’ names, separated by commas.</span>
+      <input class="input" type="text" placeholder="e.g. Ethan Tuttle, Emily Tuttle" required>
+    </div>
+
+    <div class="field">
+      <label>Age(s) <span class="req">*</span></label>
+      <span class="hint">If listing multiple, use the same order as names, separated by commas.</span>
+      <input class="input" type="text" inputmode="numeric" placeholder="e.g. 11, 9" required>
+    </div>
+
+    <div class="field">
+      <label>City of residence in Utah <span class="req">*</span></label>
+      <input class="input" type="text" placeholder="e.g. Lindon" required>
+    </div>
+
+    <hr class="hr">
+
+    <!-- Parent / guardian -->
+    <p class="subhead">Parent / guardian</p>
+
+    <div class="field">
+      <label>Parent / guardian full name(s) <span class="req">*</span></label>
+      <input class="input" type="text" placeholder="Full name" required>
+    </div>
+    <div class="field">
+      <label>Parent / guardian email <span class="req">*</span></label>
+      <input class="input" type="email" placeholder="you@email.com" required>
+    </div>
+    <div class="field">
+      <label>Parent / guardian phone <span class="req">*</span></label>
+      <input class="input" type="tel" placeholder="(801) 555-0123" required>
+    </div>
+
+    <hr class="hr">
+
+    <!-- Availability -->
+    <p class="subhead">Availability</p>
+
+    <div class="field">
+      <label>Can you attend the Lindon Kids Market on August 8? <span class="req">*</span></label>
+      <span class="hint">Attendance is mandatory to participate in the series.</span>
+      <div class="choices">
+        <label class="choice"><input type="radio" name="market" required> Yes, we can attend</label>
+        <label class="choice"><input type="radio" name="market"> No</label>
+      </div>
+    </div>
+
+    <div class="field">
+      <label>Available one hour each week (Mon–Sat), July 15 – Aug 8, for 3 weekly film visits? <span class="req">*</span></label>
+      <div class="choices">
+        <label class="choice"><input type="radio" name="avail" required> Yes, fully available</label>
+        <label class="choice"><input type="radio" name="avail"> Mostly — I’ll mark exceptions below</label>
+      </div>
+      <p class="small muted avail-summary" style="margin: 8px 0 12px; font-size: 24px; text-align: center; color: rgb(24, 51, 52)">Tap any date you’re <b>NOT</b> available. Leave blank if you’re free all dates.</p>
+      <div class="cal-legend">
+        <span><span class="sw" style="background:var(--tt-cyan-soft);border:1.5px solid var(--tt-cyan-deep);"></span>Available</span>
+        <span><span class="sw" style="background:var(--tt-pink);"></span>Marked unavailable</span>
+      </div>
+      <div class="availcal" data-availcal></div>
+      <input type="hidden" name="unavailable" id="unavailDates">
+    </div>
+
+    <hr class="hr">
+
+    <!-- Business -->
+    <p class="subhead">The business</p>
+
+    <div class="field">
+      <label>What business are you pitching? <span class="req">*</span></label>
+      <textarea class="textarea" placeholder="Tell us about your idea or product" required></textarea>
+    </div>
+
+    <div class="field">
+      <label>Have you participated in the Lindon Kids Market or another kids market before?</label>
+      <span class="hint">If so, when and where?</span>
+      <textarea class="textarea" placeholder="Optional"></textarea>
+    </div>
+
+    <hr class="hr">
+
+    <!-- Video uploads -->
+    <p class="subhead">Pitch videos</p>
+    <p class="small muted" style="margin-top:-2px;">All videos must be filmed horizontal (landscape).</p>
+
+    <div class="field">
+      <label>Pitch video <span class="req">*</span></label>
+      <span class="hint">Max 30 seconds.</span>
+      <label class="upload">
+        <div class="ico">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16V4"/><path d="M6 10l6-6 6 6"/><path d="M4 20h16"/></svg>
+        </div>
+        <div class="ttl">Upload pitch video</div>
+        <div class="sub">MP4 or MOV · landscape</div>
+        <input type="file" accept="video/*">
+      </label>
+    </div>
+
+    <div class="field">
+      <label>Introduction video <span class="req">*</span></label>
+      <span class="hint">Max 60 seconds · unedited.</span>
+      <label class="upload">
+        <div class="ico">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16V4"/><path d="M6 10l6-6 6 6"/><path d="M4 20h16"/></svg>
+        </div>
+        <div class="ttl">Upload introduction</div>
+        <div class="sub">MP4 or MOV · landscape · no editing</div>
+        <input type="file" accept="video/*">
+      </label>
+    </div>
+
+    <div class="field">
+      <label>Parent / guardian video <span class="req">*</span></label>
+      <span class="hint">Max 30 seconds · unedited.</span>
+      <label class="upload">
+        <div class="ico">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16V4"/><path d="M6 10l6-6 6 6"/><path d="M4 20h16"/></svg>
+        </div>
+        <div class="ttl">Upload parent video</div>
+        <div class="sub">MP4 or MOV · landscape · no editing</div>
+        <input type="file" accept="video/*">
+      </label>
+    </div>
+
+    <hr class="hr">
+
+    <!-- Consent -->
+    <p class="subhead">Consent &amp; release</p>
+    <div class="field">
+      <label>Digital signature <span class="req">*</span></label>
+      <span class="hint">Sign below to acknowledge the consent &amp; release for filming and participation.</span>
+      <div class="sigpad">Tap to sign</div>
+      <label class="choice" style="margin-top:10px;">
+        <input type="checkbox" required>
+        <span>I am the parent/guardian and I acknowledge the consent &amp; release by signing digitally.</span>
+      </label>
+    </div>
+
+    <button type="submit" class="btn btn-pop btn-lg btn-block" style="margin-top:10px;">Submit application</button>
+    <p class="small muted center" style="margin-top:12px;">By submitting you agree to be contacted about the series.</p>
+  </form>
+
+  <footer class="footer">
+    <div class="links">
+      <a href="index.html">Overview</a>
+      <a href="success.html">Success tips</a>
+      <a href="faqs.html">FAQ</a>
+    </div>
+  </footer>
+
+</div>
+<script src="countdown.js"></script>
+<script>
+  function submitApp(e){
+    e.preventDefault();
+    alert("Concept wireframe — your application would be submitted here. Thanks for pitching!");
+    return false;
+  }
+
+  // Availability calendar — tap dates you're NOT available (Jul 15 – Aug 8, Mon–Sat)
+  (function(){
+    var root = document.querySelector('[data-availcal]');
+    if(!root) return;
+    var hidden = document.getElementById('unavailDates');
+    var summary = document.querySelector('.avail-summary');
+    var now = new Date();
+    var y = now.getFullYear();
+    var rangeStart = new Date(y,6,15), rangeEnd = new Date(y,7,8);
+    if(now > rangeEnd){ y++; rangeStart = new Date(y,6,15); rangeEnd = new Date(y,7,8); }
+    var DOW = ['Su','Mo','Tu','We','Th','Fr','Sa'];
+    var MON = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+    var selected = {};
+    function key(d){ return d.getFullYear()+'-'+(d.getMonth()+1)+'-'+d.getDate(); }
+    function inRange(d){ return d >= rangeStart && d <= rangeEnd; }
+    function renderMonth(year, month){
+      var startDow = new Date(year, month, 1).getDay();
+      var days = new Date(year, month+1, 0).getDate();
+      var cells = [];
+      for(var i=0;i<startDow;i++) cells.push(null);
+      for(var day=1; day<=days; day++) cells.push(day);
+      while(cells.length % 7) cells.push(null);
+      var rows = '';
+      for(var w=0; w<cells.length; w+=7){
+        var week = cells.slice(w, w+7);
+        var keep = week.some(function(day){ return day && inRange(new Date(year, month, day)); });
+        if(!keep) continue;
+        week.forEach(function(day){
+          if(!day){ rows += '<div class="cal-cell empty"></div>'; return; }
+          var d = new Date(year, month, day);
+          var pickable = inRange(d) && d.getDay() !== 0;
+          var cls = 'cal-cell' + (pickable ? '' : ' out') + (selected[key(d)] ? ' off' : '');
+          rows += '<div class="'+cls+'" '+(pickable ? 'data-k="'+key(d)+'" role="button" tabindex="0"' : '')+'>'+day+'</div>';
+        });
+      }
+      var dow = DOW.map(function(d){ return '<div class="cal-dow">'+d+'</div>'; }).join('');
+      return '<div class="cal-month"><div class="cal-title">'+MON[month]+' '+year+'</div><div class="cal-grid">'+dow+rows+'</div></div>';
+    }
+    function updateSummary(){
+      var keys = Object.keys(selected).filter(function(k){ return selected[k]; });
+      hidden.value = keys.join(',');
+      if(summary){
+        summary.innerHTML = keys.length
+          ? '<b>'+keys.length+'</b> date'+(keys.length>1?'s':'')+' marked unavailable. Tap a date to toggle.'
+          : 'Tap any date you’re <b>NOT</b> available. Leave blank if you’re free all dates.';
+      }
+    }
+    function toggle(c){
+      var k = c.getAttribute('data-k');
+      selected[k] = !selected[k];
+      c.classList.toggle('off');
+      updateSummary();
+    }
+    root.innerHTML = renderMonth(y,6) + renderMonth(y,7);
+    root.addEventListener('click', function(e){
+      var c = e.target.closest('[data-k]'); if(c) toggle(c);
+    });
+    root.addEventListener('keydown', function(e){
+      if((e.key===' '||e.key==='Enter')){ var c=e.target.closest('[data-k]'); if(c){ e.preventDefault(); toggle(c); } }
+    });
+    updateSummary();
+  })();
+</script>
+</body>
+</html>

@@ -1,0 +1,30 @@
+/* ============================================================
+   SPACING & SIZING  —  Tuttle Twins
+   8px base rhythm with a few half-steps for tight UI.
+   ============================================================ */
+
+:root {
+  --space-0:  0;
+  --space-1:  4px;
+  --space-2:  8px;
+  --space-3:  12px;
+  --space-4:  16px;
+  --space-5:  20px;
+  --space-6:  24px;
+  --space-8:  32px;
+  --space-10: 40px;
+  --space-12: 48px;
+  --space-16: 64px;
+  --space-20: 80px;
+  --space-24: 96px;
+
+  /* Content widths */
+  --container:    1040px;
+  --container-sm: 720px;
+  --measure:      62ch; /* comfortable reading measure */
+
+  /* Component sizing */
+  --control-h-sm: 36px;
+  --control-h:    44px; /* default — meets 44px touch target */
+  --control-h-lg: 56px;
+}

@@ -1,0 +1,86 @@
+/* ============================================================
+   COLOR  —  Tuttle Twins
+   Lead with the teal family. Gold is the pop accent.
+   Secondaries are occasional accents, never co-leads.
+   Any color may be used at 50% opacity (see --*-50 tokens).
+   ============================================================ */
+
+:root {
+  /* ---- Primary palette (base values) ---- */
+  --tt-deep-teal: #173334; /* Primary ink; dark backgrounds; body text on light */
+  --tt-teal:      #3b8d99; /* Core brand color; buttons, fills */
+  --tt-sky:       #53b9c7; /* Accent; logo highlight; title-slab device */
+  --tt-cyan:      #bdeeef; /* Soft backgrounds and surfaces */
+  --tt-gold:      #ffc300; /* Highlight / CTA pop; marker emphasis */
+
+  /* ---- Secondary palette (accents only, use sparingly) ---- */
+  --tt-purple: #715d87;
+  --tt-pink:   #f05b99;
+  --tt-orange: #f5871f;
+
+  /* ---- Supporting tints/shades (derived, for hover/press/borders) ---- */
+  --tt-teal-dark:  #2f7079; /* teal pressed / hover-dark */
+  --tt-teal-deep:  #147a85; /* deep teal-cyan for texture fills */
+  --tt-gold-dark:  #e0ab00; /* gold pressed */
+  --tt-cyan-soft:  #eafafa; /* paper — softest surface */
+  --tt-cyan-deep:  #9fdfe2; /* cyan border / divider on light */
+
+  /* ---- 50% opacity variants (per brand: any color may be used at 50%) ---- */
+  --tt-deep-teal-50: rgba(23, 51, 52, .5);
+  --tt-teal-50:      rgba(59, 141, 153, .5);
+  --tt-sky-50:       rgba(83, 185, 199, .5);
+  --tt-cyan-50:      rgba(189, 238, 239, .5);
+  --tt-gold-50:      rgba(255, 195, 0, .5);
+  --tt-purple-50:    rgba(113, 93, 135, .5);
+  --tt-pink-50:      rgba(240, 91, 153, .5);
+  --tt-orange-50:    rgba(245, 135, 31, .5);
+
+  /* ---- Neutrals ---- */
+  --tt-white: #ffffff;
+  --tt-muted: #7aa3a6; /* desaturated teal — captions, meta, rgb labels */
+
+  /* ============================================================
+     SEMANTIC ALIASES  —  reach for these in components
+     ============================================================ */
+
+  /* Text */
+  --text-body:      var(--tt-deep-teal); /* body on light */
+  --text-on-dark:   var(--tt-white);     /* body on dark */
+  --text-heading:   var(--tt-deep-teal);
+  --text-muted:     var(--tt-muted);
+  --text-link:      var(--tt-teal);
+  --text-eyebrow:   var(--tt-teal);      /* subheads/eyebrows */
+
+  /* Surfaces */
+  --surface-page:    var(--tt-cyan);      /* watercolor-sky page base */
+  --surface-paper:   var(--tt-cyan-soft); /* softest surface */
+  --surface-card:    var(--tt-white);     /* white rounded cards */
+  --surface-dark:    var(--tt-deep-teal); /* dark sections */
+  --surface-sunk:    var(--tt-cyan-soft); /* inset / note backgrounds */
+
+  /* Brand actions */
+  --action-primary:        var(--tt-teal);
+  --action-primary-hover:  var(--tt-teal-dark);
+  --action-primary-press:  var(--tt-teal-deep);
+  --action-primary-text:   var(--tt-white);
+
+  --action-pop:        var(--tt-gold);   /* gold CTA pop */
+  --action-pop-hover:  var(--tt-gold-dark);
+  --action-pop-text:   var(--tt-deep-teal);
+
+  /* Signature devices */
+  --slab-default: var(--tt-sky);  /* title-slab device */
+  --slab-emphasis: var(--tt-gold);
+  --marker:       var(--tt-gold); /* marker highlight behind key words */
+
+  /* Lines */
+  --border-soft:   var(--tt-cyan-deep);
+  --border-strong: var(--tt-deep-teal);
+  --divider:       var(--tt-cyan);
+
+  /* Status (kid-friendly, drawn from the palette) */
+  --status-success: var(--tt-teal);
+  --status-warning: var(--tt-orange);
+  --status-danger:  var(--tt-pink);
+  --status-info:    var(--tt-sky);
+}
