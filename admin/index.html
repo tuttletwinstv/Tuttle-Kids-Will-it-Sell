@@ -147,9 +147,12 @@
   <!-- Sign-in screen (no session) -->
   <section class="signin" id="signin" hidden>
     <h1>Moderator sign-in</h1>
-    <p>Enter your moderator email. We'll send a one-time sign-in link.</p>
-    <input class="input" id="signinEmail" type="email" placeholder="you@tuttletwins.tv" autocomplete="email">
-    <button class="btn btn-pop btn-lg btn-block" id="sendLinkBtn">Send sign-in link</button>
+    <p>Enter your moderator email and password.</p>
+    <form id="signinForm" autocomplete="on">
+      <input class="input" id="signinEmail"    type="email"    placeholder="you@tuttletwins.tv" autocomplete="username" required>
+      <input class="input" id="signinPassword" type="password" placeholder="Password"            autocomplete="current-password" required>
+      <button class="btn btn-pop btn-lg btn-block" type="submit" id="signinBtn">Sign in</button>
+    </form>
     <p class="msg" id="signinMsg" role="status" aria-live="polite"></p>
   </section>
 
@@ -206,13 +209,16 @@
     auth: {
       persistSession:    true,
       autoRefreshToken:  true,
-      detectSessionInUrl: true,   // catch magic-link callbacks
+      detectSessionInUrl: false,    // password auth — no link callback
     },
   });
 
   const signinEl    = document.getElementById("signin");
   const dashboardEl = document.getElementById("dashboard");
+  const signinForm  = document.getElementById("signinForm");
   const signinEmail = document.getElementById("signinEmail");
+  const signinPwd   = document.getElementById("signinPassword");
+  const signinBtn   = document.getElementById("signinBtn");
   const signinMsg   = document.getElementById("signinMsg");
   const userEmailEl = document.getElementById("userEmail");
   const appsListEl  = document.getElementById("appsList");
@@ -248,32 +254,43 @@
   }
 
   // ----------------------------------------------------------
-  // Magic link sign-in. Supabase emails a one-time link that
-  // brings the moderator back here with a session attached.
+  // Email + password sign-in. Accounts are pre-created in the
+  // Supabase dashboard (Authentication → Users → Add user) and
+  // mirrored into public.moderators so RLS lets them read the
+  // data. There's no self-signup here — moderation isn't open
+  // to anyone who guesses the URL.
   // ----------------------------------------------------------
-  document.getElementById("sendLinkBtn").addEventListener("click", async () => {
-    const email = (signinEmail.value || "").trim().toLowerCase();
-    if (!email) {
-      signinMsg.textContent = "Type your email first.";
+  signinForm.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const email    = (signinEmail.value || "").trim().toLowerCase();
+    const password = signinPwd.value || "";
+    if (!email || !password) {
+      signinMsg.textContent = "Email and password are both required.";
       signinMsg.className = "msg error";
       return;
     }
-    signinMsg.textContent = "Sending…";
-    signinMsg.className = "msg";
-    const { error } = await supabase.auth.signInWithOtp({
+    signinBtn.disabled    = true;
+    signinBtn.textContent = "Signing in…";
+    signinMsg.textContent = "";
+    signinMsg.className   = "msg";
+    const { data, error } = await supabase.auth.signInWithPassword({
       email,
-      options: {
-        emailRedirectTo: window.location.origin + window.location.pathname,
-        shouldCreateUser: true,
-      },
+      password,
     });
+    signinBtn.disabled    = false;
+    signinBtn.textContent = "Sign in";
     if (error) {
-      signinMsg.textContent = error.message || "Couldn't send the link.";
+      // Supabase returns "Invalid login credentials" for both
+      // unknown email and wrong password — leave that message as-is
+      // so the form doesn't leak which one was wrong.
+      signinMsg.textContent = error.message || "Couldn't sign in.";
       signinMsg.className = "msg error";
       return;
     }
-    signinMsg.textContent = "Check your email for a sign-in link.";
-    signinMsg.className = "msg ok";
+    if (data?.user?.email) {
+      showDashboard(data.user.email);
+      await loadApps();
+    }
   });
 
   document.getElementById("signoutBtn").addEventListener("click", async () => {
