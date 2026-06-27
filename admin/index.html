@@ -315,7 +315,31 @@
     APPS = data || [];
 
     if (APPS.length === 0) {
-      appsListEl.innerHTML = `<p class="empty-state">No applications yet — or you aren't on the moderator whitelist.</p>`;
+      // Either there really are zero submissions, or the signed-in
+      // user isn't on the moderators whitelist and RLS is gating
+      // every row out. Tell them apart by calling the
+      // is_moderator() RPC — it's `security definer` so it returns
+      // an honest yes/no regardless of RLS.
+      const meEmail = userEmailEl.textContent || "your account";
+      const { data: isMod, error: rpcErr } = await supabase.rpc("is_moderator");
+      if (rpcErr) {
+        appsListEl.innerHTML = `<p class="empty-state">Couldn't check moderator status: ${escapeHtml(rpcErr.message)}</p>`;
+        return;
+      }
+
+      if (isMod) {
+        appsListEl.innerHTML = `<p class="empty-state">No applications yet. They'll show up here as soon as families submit.</p>`;
+      } else {
+        const sql = `insert into public.moderators (email, note)\nvalues ('${meEmail}', 'self-added')\non conflict (email) do nothing;`;
+        appsListEl.innerHTML = `
+          <div class="empty-state" style="text-align:left; max-width:640px; margin:24px auto; background:#fff; border:1px solid rgba(0,0,0,0.1); border-radius:14px; padding:18px 20px;">
+            <h2 style="margin:0 0 6px; font-size:1.1rem; color:var(--ink,#0f172a);">You're signed in, but not on the moderator whitelist</h2>
+            <p style="margin:0 0 12px;"><b>${escapeHtml(meEmail)}</b> can sign in, but it isn't in the <code>public.moderators</code> table, so RLS is hiding every application from this view.</p>
+            <p style="margin:0 0 8px;"><b>Fix:</b> open <a href="https://supabase.com/dashboard/project/ukeqcxdpzkhwlibabawg/sql/new" target="_blank" rel="noopener">Supabase SQL Editor</a> and run:</p>
+            <pre style="background:#0f172a; color:#e2e8f0; padding:12px 14px; border-radius:10px; font-size:0.85rem; overflow:auto; margin:0;">${escapeHtml(sql)}</pre>
+            <p style="margin:12px 0 0; font-size:0.85rem; color:var(--muted,#6b7280);">Then come back here and hit <b>Refresh</b>.</p>
+          </div>`;
+      }
       return;
     }
 

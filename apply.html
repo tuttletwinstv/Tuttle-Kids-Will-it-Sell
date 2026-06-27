@@ -134,6 +134,8 @@
         <div class="ttl">Upload pitch video</div>
         <div class="sub">MP4 or MOV · landscape</div>
         <input type="file" id="pitchVideo" name="pitchVideo" accept="video/*" required>
+        <span class="upload-progress-pct">0%</span>
+        <div class="upload-progress"><div class="upload-progress-fill"></div></div>
       </label>
     </div>
 
@@ -147,6 +149,8 @@
         <div class="ttl">Upload introduction</div>
         <div class="sub">MP4 or MOV · landscape · no editing</div>
         <input type="file" id="introVideo" name="introVideo" accept="video/*" required>
+        <span class="upload-progress-pct">0%</span>
+        <div class="upload-progress"><div class="upload-progress-fill"></div></div>
       </label>
     </div>
 
@@ -160,6 +164,8 @@
         <div class="ttl">Upload parent video</div>
         <div class="sub">MP4 or MOV · landscape · no editing</div>
         <input type="file" id="parentVideo" name="parentVideo" accept="video/*" required>
+        <span class="upload-progress-pct">0%</span>
+        <div class="upload-progress"><div class="upload-progress-fill"></div></div>
       </label>
     </div>
 
@@ -281,17 +287,69 @@
 
     // Helper that uploads one video to <bucket>/<applicationId>/<slot>.<ext>
     // and returns the storage path on success.
+    //
+    // We POST through XHR (instead of supabase.storage.upload) so we
+    // can wire upload.onprogress into a real per-file progress bar.
+    // supabase-js v2 doesn't expose progress callbacks; the storage
+    // REST endpoint that the JS client hits underneath is the same
+    // /storage/v1/object/{bucket}/{path} we hit here.
     async function uploadVideo(slot, file) {
       const ext = (file.name.split(".").pop() || "mp4").toLowerCase().replace(/[^a-z0-9]/g, "");
       const path = `${applicationId}/${slot}.${ext || "mp4"}`;
-      const { error } = await supabase
-        .storage
-        .from(STORAGE_BUCKET)
-        .upload(path, file, {
-          contentType: file.type || "video/mp4",
-          upsert: false,
-        });
-      if (error) throw new Error(`${slot} video upload failed: ${error.message}`);
+      const zoneId = `${slot}Video`;           // matches data-file-zone="..." in the form
+      const zone = document.querySelector(`[data-file-zone="${zoneId}"]`);
+      const fill = zone?.querySelector(".upload-progress-fill");
+      const pct  = zone?.querySelector(".upload-progress-pct");
+      const setPct = (p) => {
+        const clamped = Math.max(0, Math.min(100, Math.round(p)));
+        if (fill) fill.style.width = `${clamped}%`;
+        if (pct)  pct.textContent  = `${clamped}%`;
+      };
+      zone?.classList.add("uploading");
+      zone?.classList.remove("upload-done");
+      setPct(0);
+
+      // Project URL + anon key live in supabase-client.js — re-read
+      // them off the client we already imported so we don't repeat
+      // the constants here.
+      const baseUrl = supabase.storage.url.replace(/\/$/, "");
+      // baseUrl ends with /storage/v1; full target is /object/{bucket}/{path}
+      const target  = `${baseUrl}/object/${STORAGE_BUCKET}/${path}`;
+      const anon    = supabase.supabaseKey;
+
+      await new Promise((resolve, reject) => {
+        const xhr = new XMLHttpRequest();
+        xhr.open("POST", target);
+        xhr.setRequestHeader("Authorization", `Bearer ${anon}`);
+        xhr.setRequestHeader("apikey",        anon);
+        xhr.setRequestHeader("Content-Type",  file.type || "video/mp4");
+        xhr.setRequestHeader("x-upsert",      "false");
+        xhr.upload.onprogress = (e) => {
+          if (e.lengthComputable) setPct((e.loaded / e.total) * 100);
+        };
+        xhr.onload = () => {
+          if (xhr.status >= 200 && xhr.status < 300) {
+            setPct(100);
+            zone?.classList.add("upload-done");
+            zone?.classList.remove("uploading");
+            resolve();
+          } else {
+            zone?.classList.remove("uploading");
+            // Surface the server's error message if it shipped one.
+            let msg = `HTTP ${xhr.status}`;
+            try {
+              const body = JSON.parse(xhr.responseText || "{}");
+              if (body.message) msg = body.message;
+            } catch (_) {}
+            reject(new Error(`${slot} video upload failed: ${msg}`));
+          }
+        };
+        xhr.onerror = () => {
+          zone?.classList.remove("uploading");
+          reject(new Error(`${slot} video upload failed: network error`));
+        };
+        xhr.send(file);
+      });
       return path;
     }
 

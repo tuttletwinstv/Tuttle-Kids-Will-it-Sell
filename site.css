@@ -487,6 +487,40 @@ select.input { appearance: none; background-image: url("data:image/svg+xml,%3Csv
 .upload .sub { font-size: var(--fs-sm); color: var(--text-muted); }
 .upload input[type=file] { display: none; }
 
+/* Upload progress — only visible while a file is being POSTed.
+   The track sits across the bottom edge so the existing icon /
+   title / sub layout stays untouched until upload kicks off. */
+.upload { position: relative; overflow: hidden; }
+.upload-progress {
+  display: none;
+  position: absolute;
+  left: 0; right: 0; bottom: 0;
+  height: 6px;
+  background: rgba(0, 0, 0, 0.08);
+}
+.upload-progress-fill {
+  height: 100%;
+  width: 0%;
+  background: var(--tt-teal, #108c99);
+  transition: width 0.18s ease-out;
+}
+.upload-progress-pct {
+  display: none;
+  position: absolute;
+  top: 8px; right: 12px;
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: var(--tt-deep-teal, #173334);
+  color: #fff;
+  font: 700 0.78rem/1 var(--font-sans, system-ui);
+  letter-spacing: 0.04em;
+}
+.upload.uploading .upload-progress,
+.upload.uploading .upload-progress-pct { display: block; }
+.upload.uploading { border-color: var(--tt-teal, #108c99); cursor: progress; }
+.upload.upload-done .upload-progress-fill { background: #16a34a; }
+.upload.upload-done .upload-progress-pct  { background: #16a34a; }
+
 /* signature pad */
 .sigpad {
   border: 1.5px solid var(--tt-cyan-deep);
