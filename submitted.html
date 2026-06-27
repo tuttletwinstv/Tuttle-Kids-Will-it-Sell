@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Application submitted — Tuttle Twins Entrepreneur Series</title>
+<link rel="stylesheet" href="ds/styles.css">
+<link rel="stylesheet" href="site.css">
+<style>
+  .submitted-hero {
+    text-align: center;
+    padding: 48px 20px 16px;
+  }
+  .submitted-emoji {
+    font-size: 64px;
+    line-height: 1;
+    display: inline-block;
+    animation: pop 0.7s ease-out;
+  }
+  @keyframes pop {
+    0%   { transform: scale(0.3) rotate(-10deg); opacity: 0; }
+    60%  { transform: scale(1.15) rotate(4deg);  opacity: 1; }
+    100% { transform: scale(1)    rotate(0deg); }
+  }
+  .submitted-title {
+    margin: 12px 0 8px;
+    font-size: 2.2rem;
+  }
+  .submitted-sub {
+    font-size: 1.05rem;
+    color: var(--ink-soft, #475569);
+    margin: 0 auto 28px;
+    max-width: 28em;
+    line-height: 1.5;
+  }
+  .next-steps {
+    max-width: 32em;
+    margin: 0 auto 24px;
+    padding: 18px 22px;
+    background: rgba(0, 0, 0, 0.03);
+    border-radius: 14px;
+    text-align: left;
+  }
+  .next-steps h3 {
+    margin: 0 0 8px;
+    font-size: 1rem;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--ink, #0f172a);
+  }
+  .next-steps ol {
+    margin: 0;
+    padding-left: 1.2em;
+    font-size: 0.95rem;
+    line-height: 1.55;
+  }
+  .submitted-actions {
+    display: inline-flex;
+    gap: 12px;
+    flex-wrap: wrap;
+    justify-content: center;
+    margin-top: 8px;
+  }
+</style>
+</head>
+<body>
+<div class="app" data-screen-label="Application submitted">
+
+  <nav class="appbar">
+    <a class="backlink" href="index.html">← Back to overview</a>
+    <a class="wordmark" href="index.html" style="font-size:1rem;">Tuttle Twins</a>
+  </nav>
+
+  <section class="submitted-hero">
+    <div class="submitted-emoji" aria-hidden="true">🎉</div>
+    <h1 class="slab submitted-title" id="submittedHeadline">You're in the running!</h1>
+    <p class="submitted-sub" id="submittedSub">
+      Your application is locked in. We'll review every submission together and reach out to the families we pick within a few days.
+    </p>
+
+    <div class="next-steps">
+      <h3>What happens next</h3>
+      <ol>
+        <li>Our team watches every pitch + introduction video.</li>
+        <li>Selected families get a call or email from us by mid-July.</li>
+        <li>Picked families film weekly visits July&nbsp;15&nbsp;–&nbsp;Aug&nbsp;8 and showcase at the Lindon Kids Market on August&nbsp;8.</li>
+      </ol>
+    </div>
+
+    <div class="submitted-actions">
+      <a class="btn btn-pop btn-lg" href="success.html">Read success tips</a>
+      <a class="btn btn-lg" href="index.html">Back to overview</a>
+    </div>
+  </section>
+
+  <footer class="footer">
+    <div class="links">
+      <a href="index.html">Overview</a>
+      <a href="success.html">Success tips</a>
+      <a href="faqs.html">FAQ</a>
+    </div>
+  </footer>
+
+</div>
+
+<script>
+  // Personalize the headline with the applicant name(s) if the
+  // submit handler forwarded them in the query string.
+  (function () {
+    const params = new URLSearchParams(location.search);
+    const names  = (params.get("names") || "").trim();
+    if (!names) return;
+    const headline = document.getElementById("submittedHeadline");
+    const first = names.split(",")[0].trim().split(/\s+/)[0];
+    if (headline && first) {
+      headline.textContent = `Nice work, ${first}!`;
+    }
+  })();
+</script>
+</body>
+</html>

@@ -33,26 +33,26 @@
     </div>
   </section>
 
-  <form class="section" style="padding-top:8px;" onsubmit="return submitApp(event)">
+  <form class="section" id="applyForm" style="padding-top:8px;">
 
     <!-- About the kid(s) -->
     <p class="subhead">About the applicant(s)</p>
 
     <div class="field">
-      <label>Full name(s) <span class="req">*</span></label>
+      <label for="applicantNames">Full name(s) <span class="req">*</span></label>
       <span class="hint">If applying as a family, list all kids’ names, separated by commas.</span>
-      <input class="input" type="text" placeholder="e.g. Ethan Tuttle, Emily Tuttle" required>
+      <input class="input" id="applicantNames" name="applicantNames" type="text" placeholder="e.g. Ethan Tuttle, Emily Tuttle" required>
     </div>
 
     <div class="field">
-      <label>Age(s) <span class="req">*</span></label>
+      <label for="applicantAges">Age(s) <span class="req">*</span></label>
       <span class="hint">If listing multiple, use the same order as names, separated by commas.</span>
-      <input class="input" type="text" inputmode="numeric" placeholder="e.g. 11, 9" required>
+      <input class="input" id="applicantAges" name="applicantAges" type="text" inputmode="numeric" placeholder="e.g. 11, 9" required>
     </div>
 
     <div class="field">
-      <label>City of residence in Utah <span class="req">*</span></label>
-      <input class="input" type="text" placeholder="e.g. Lindon" required>
+      <label for="city">City of residence in Utah <span class="req">*</span></label>
+      <input class="input" id="city" name="city" type="text" placeholder="e.g. Lindon" required>
     </div>
 
     <hr class="hr">
@@ -61,16 +61,16 @@
     <p class="subhead">Parent / guardian</p>
 
     <div class="field">
-      <label>Parent / guardian full name(s) <span class="req">*</span></label>
-      <input class="input" type="text" placeholder="Full name" required>
+      <label for="guardianName">Parent / guardian full name(s) <span class="req">*</span></label>
+      <input class="input" id="guardianName" name="guardianName" type="text" placeholder="Full name" required>
     </div>
     <div class="field">
-      <label>Parent / guardian email <span class="req">*</span></label>
-      <input class="input" type="email" placeholder="you@email.com" required>
+      <label for="guardianEmail">Parent / guardian email <span class="req">*</span></label>
+      <input class="input" id="guardianEmail" name="guardianEmail" type="email" placeholder="you@email.com" required>
     </div>
     <div class="field">
-      <label>Parent / guardian phone <span class="req">*</span></label>
-      <input class="input" type="tel" placeholder="(801) 555-0123" required>
+      <label for="guardianPhone">Parent / guardian phone <span class="req">*</span></label>
+      <input class="input" id="guardianPhone" name="guardianPhone" type="tel" placeholder="(801) 555-0123" required>
     </div>
 
     <hr class="hr">
@@ -82,16 +82,16 @@
       <label>Can you attend the Lindon Kids Market on August 8? <span class="req">*</span></label>
       <span class="hint">Attendance is mandatory to participate in the series.</span>
       <div class="choices">
-        <label class="choice"><input type="radio" name="market" required> Yes, we can attend</label>
-        <label class="choice"><input type="radio" name="market"> No</label>
+        <label class="choice"><input type="radio" name="market" value="yes" required> Yes, we can attend</label>
+        <label class="choice"><input type="radio" name="market" value="no"> No</label>
       </div>
     </div>
 
     <div class="field">
       <label>Available one hour each week (Mon–Sat), July 15 – Aug 8, for 3 weekly film visits? <span class="req">*</span></label>
       <div class="choices">
-        <label class="choice"><input type="radio" name="avail" required> Yes, fully available</label>
-        <label class="choice"><input type="radio" name="avail"> Mostly — I’ll mark exceptions below</label>
+        <label class="choice"><input type="radio" name="avail" value="yes" required> Yes, fully available</label>
+        <label class="choice"><input type="radio" name="avail" value="mostly"> Mostly — I’ll mark exceptions below</label>
       </div>
       <p class="small muted avail-summary" style="margin: 8px 0 12px; font-size: 24px; text-align: center; color: rgb(24, 51, 52)">Tap any date you’re <b>NOT</b> available. Leave blank if you’re free all dates.</p>
       <div class="cal-legend">
@@ -108,14 +108,14 @@
     <p class="subhead">The business</p>
 
     <div class="field">
-      <label>What business are you pitching? <span class="req">*</span></label>
-      <textarea class="textarea" placeholder="Tell us about your idea or product" required></textarea>
+      <label for="businessPitch">What business are you pitching? <span class="req">*</span></label>
+      <textarea class="textarea" id="businessPitch" name="businessPitch" placeholder="Tell us about your idea or product" required></textarea>
     </div>
 
     <div class="field">
-      <label>Have you participated in the Lindon Kids Market or another kids market before?</label>
+      <label for="marketHistory">Have you participated in the Lindon Kids Market or another kids market before?</label>
       <span class="hint">If so, when and where?</span>
-      <textarea class="textarea" placeholder="Optional"></textarea>
+      <textarea class="textarea" id="marketHistory" name="marketHistory" placeholder="Optional"></textarea>
     </div>
 
     <hr class="hr">
@@ -125,41 +125,41 @@
     <p class="small muted" style="margin-top:-2px;">All videos must be filmed horizontal (landscape).</p>
 
     <div class="field">
-      <label>Pitch video <span class="req">*</span></label>
+      <label for="pitchVideo">Pitch video <span class="req">*</span></label>
       <span class="hint">Max 30 seconds.</span>
-      <label class="upload">
+      <label class="upload" data-file-zone="pitchVideo">
         <div class="ico">
           <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16V4"/><path d="M6 10l6-6 6 6"/><path d="M4 20h16"/></svg>
         </div>
         <div class="ttl">Upload pitch video</div>
         <div class="sub">MP4 or MOV · landscape</div>
-        <input type="file" accept="video/*">
+        <input type="file" id="pitchVideo" name="pitchVideo" accept="video/*" required>
       </label>
     </div>
 
     <div class="field">
-      <label>Introduction video <span class="req">*</span></label>
+      <label for="introVideo">Introduction video <span class="req">*</span></label>
       <span class="hint">Max 60 seconds · unedited.</span>
-      <label class="upload">
+      <label class="upload" data-file-zone="introVideo">
         <div class="ico">
           <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16V4"/><path d="M6 10l6-6 6 6"/><path d="M4 20h16"/></svg>
         </div>
         <div class="ttl">Upload introduction</div>
         <div class="sub">MP4 or MOV · landscape · no editing</div>
-        <input type="file" accept="video/*">
+        <input type="file" id="introVideo" name="introVideo" accept="video/*" required>
       </label>
     </div>
 
     <div class="field">
-      <label>Parent / guardian video <span class="req">*</span></label>
+      <label for="parentVideo">Parent / guardian video <span class="req">*</span></label>
       <span class="hint">Max 30 seconds · unedited.</span>
-      <label class="upload">
+      <label class="upload" data-file-zone="parentVideo">
         <div class="ico">
           <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16V4"/><path d="M6 10l6-6 6 6"/><path d="M4 20h16"/></svg>
         </div>
         <div class="ttl">Upload parent video</div>
         <div class="sub">MP4 or MOV · landscape · no editing</div>
-        <input type="file" accept="video/*">
+        <input type="file" id="parentVideo" name="parentVideo" accept="video/*" required>
       </label>
     </div>
 
@@ -168,17 +168,17 @@
     <!-- Consent -->
     <p class="subhead">Consent &amp; release</p>
     <div class="field">
-      <label>Digital signature <span class="req">*</span></label>
-      <span class="hint">Sign below to acknowledge the consent &amp; release for filming and participation.</span>
-      <div class="sigpad">Tap to sign</div>
+      <label for="signature">Digital signature <span class="req">*</span></label>
+      <span class="hint">Type your full legal name to acknowledge the consent &amp; release for filming and participation.</span>
+      <input class="input" id="signature" name="signature" type="text" placeholder="Your full legal name" required style="font-family: 'Caveat', cursive, system-ui; font-size: 22px;">
       <label class="choice" style="margin-top:10px;">
-        <input type="checkbox" required>
+        <input type="checkbox" id="consentAck" name="consentAck" required>
         <span>I am the parent/guardian and I acknowledge the consent &amp; release by signing digitally.</span>
       </label>
     </div>
 
-    <button type="submit" class="btn btn-pop btn-lg btn-block" style="margin-top:10px;">Submit application</button>
-    <p class="small muted center" style="margin-top:12px;">By submitting you agree to be contacted about the series.</p>
+    <button type="submit" id="submitBtn" class="btn btn-pop btn-lg btn-block" style="margin-top:10px;">Submit application</button>
+    <p class="small muted center" id="submitStatus" style="margin-top:12px;">By submitting you agree to be contacted about the series.</p>
   </form>
 
   <footer class="footer">
@@ -191,13 +191,144 @@
 
 </div>
 <script src="countdown.js"></script>
-<script>
-  function submitApp(e){
-    e.preventDefault();
-    alert("Concept wireframe — your application would be submitted here. Thanks for pitching!");
-    return false;
+<script type="module">
+  // ===================================================================
+  // Real submit handler — uploads the three videos to Supabase Storage
+  // and inserts a row in the `applications` table. Schema lives in
+  // supabase-setup.sql; RLS lets anon INSERT but blocks every other
+  // verb so submitted apps are private once they land.
+  // ===================================================================
+  import { supabase, STORAGE_BUCKET } from "./supabase-client.js";
+
+  const form        = document.getElementById("applyForm");
+  const submitBtn   = document.getElementById("submitBtn");
+  const submitStat  = document.getElementById("submitStatus");
+
+  // Show the chosen filename in each upload zone so the kid + parent
+  // can see their file actually got picked up.
+  document.querySelectorAll("[data-file-zone]").forEach((zone) => {
+    const input = zone.querySelector("input[type=file]");
+    const ttl   = zone.querySelector(".ttl");
+    const sub   = zone.querySelector(".sub");
+    const origTtl = ttl ? ttl.textContent : "";
+    const origSub = sub ? sub.textContent : "";
+    input.addEventListener("change", () => {
+      const f = input.files && input.files[0];
+      if (!f) {
+        if (ttl) ttl.textContent = origTtl;
+        if (sub) sub.textContent = origSub;
+        return;
+      }
+      const mb = (f.size / (1024 * 1024)).toFixed(1);
+      if (ttl) ttl.textContent = f.name;
+      if (sub) sub.textContent = `${mb} MB · tap to change`;
+    });
+  });
+
+  function setStatus(msg, isError) {
+    if (!submitStat) return;
+    submitStat.textContent = msg;
+    submitStat.style.color = isError ? "#b91c1c" : "";
+    submitStat.style.fontWeight = isError ? "700" : "";
   }
 
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    submitBtn.disabled = true;
+    submitBtn.textContent = "Submitting…";
+    setStatus("Hold tight — uploading your videos. This can take a minute on slower connections.", false);
+
+    // Snapshot every form value. Trim strings so accidental whitespace
+    // doesn't end up in the DB.
+    const val = (id) => (document.getElementById(id)?.value || "").trim();
+    const radio = (name) =>
+      (document.querySelector(`input[name="${name}"]:checked`)?.value || "");
+
+    const marketChoice = radio("market");      // 'yes' | 'no'
+    const availChoice  = radio("avail");        // 'yes' | 'mostly'
+
+    const payload = {
+      applicant_names:         val("applicantNames"),
+      applicant_ages:          val("applicantAges"),
+      city:                    val("city"),
+      guardian_name:           val("guardianName"),
+      guardian_email:          val("guardianEmail").toLowerCase(),
+      guardian_phone:          val("guardianPhone"),
+      can_attend_market:       marketChoice,
+      weekly_availability:     availChoice,
+      unavailable_dates:       (val("unavailDates") || "").split(",").map((s) => s.trim()).filter(Boolean),
+      business_pitch:          val("businessPitch"),
+      previous_market_history: val("marketHistory") || null,
+      signature:               val("signature"),
+      consent_acknowledged:    document.getElementById("consentAck").checked,
+      status:                  "pending",
+    };
+
+    const pitchFile  = document.getElementById("pitchVideo").files[0];
+    const introFile  = document.getElementById("introVideo").files[0];
+    const parentFile = document.getElementById("parentVideo").files[0];
+    if (!pitchFile || !introFile || !parentFile) {
+      setStatus("Please attach all three videos before submitting.", true);
+      submitBtn.disabled = false;
+      submitBtn.textContent = "Submit application";
+      return;
+    }
+
+    // We mint the application id client-side so each video can be
+    // namespaced by it before the row exists. The same id goes into
+    // the table row in the final insert.
+    const applicationId = crypto.randomUUID();
+
+    // Helper that uploads one video to <bucket>/<applicationId>/<slot>.<ext>
+    // and returns the storage path on success.
+    async function uploadVideo(slot, file) {
+      const ext = (file.name.split(".").pop() || "mp4").toLowerCase().replace(/[^a-z0-9]/g, "");
+      const path = `${applicationId}/${slot}.${ext || "mp4"}`;
+      const { error } = await supabase
+        .storage
+        .from(STORAGE_BUCKET)
+        .upload(path, file, {
+          contentType: file.type || "video/mp4",
+          upsert: false,
+        });
+      if (error) throw new Error(`${slot} video upload failed: ${error.message}`);
+      return path;
+    }
+
+    try {
+      setStatus("Uploading pitch video (1 of 3)…", false);
+      const pitchPath  = await uploadVideo("pitch",  pitchFile);
+      setStatus("Uploading introduction video (2 of 3)…", false);
+      const introPath  = await uploadVideo("intro",  introFile);
+      setStatus("Uploading parent / guardian video (3 of 3)…", false);
+      const parentPath = await uploadVideo("parent", parentFile);
+
+      setStatus("Saving your application…", false);
+      const { error: insErr } = await supabase
+        .from("applications")
+        .insert({
+          id: applicationId,
+          ...payload,
+          pitch_video_path:  pitchPath,
+          intro_video_path:  introPath,
+          parent_video_path: parentPath,
+        });
+      if (insErr) throw new Error(`Couldn't save your application: ${insErr.message}`);
+
+      // All good — redirect to the thank-you page. Pass only the
+      // applicant name(s) so the page can greet them; email stays
+      // out of the URL / browser history.
+      const q = new URLSearchParams({ names: payload.applicant_names });
+      window.location.href = `submitted.html?${q.toString()}`;
+    } catch (err) {
+      console.error(err);
+      setStatus(`${err.message || "Something went wrong — please try again."}`, true);
+      submitBtn.disabled = false;
+      submitBtn.textContent = "Submit application";
+    }
+  });
+</script>
+<script>
   // Availability calendar — tap dates you're NOT available (Jul 15 – Aug 8, Mon–Sat)
   (function(){
     var root = document.querySelector('[data-availcal]');
