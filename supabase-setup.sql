@@ -137,7 +137,59 @@ create policy "service role full access to videos"
   with check (bucket_id = 'application-videos');
 
 
+-- ---------- 4. Moderator whitelist + policies -------------------------
+-- Moderators sign in with Supabase Auth (magic link). Their email is
+-- checked against the moderators table; RLS grants SELECT + UPDATE on
+-- applications and SELECT on the videos bucket only to whitelisted
+-- emails. The service_role key still has full access — moderators
+-- don't need it.
+create table if not exists public.moderators (
+  email      text         primary key,
+  added_at   timestamptz  not null default now(),
+  note       text
+);
+
+-- Helper: returns true when the currently-authenticated user's email
+-- (from their JWT) is in the moderators table.
+create or replace function public.is_moderator() returns boolean
+  language sql stable security definer set search_path = public as $$
+    select exists (
+      select 1 from public.moderators
+      where lower(email) = lower((auth.jwt() ->> 'email'))
+    );
+  $$;
+
+drop policy if exists "moderators can read applications"   on public.applications;
+drop policy if exists "moderators can update applications" on public.applications;
+
+create policy "moderators can read applications"
+  on public.applications for select
+  to authenticated
+  using (public.is_moderator());
+
+create policy "moderators can update applications"
+  on public.applications for update
+  to authenticated
+  using (public.is_moderator())
+  with check (public.is_moderator());
+
+-- Moderators can also fetch / play back the videos.
+drop policy if exists "moderators can read application videos" on storage.objects;
+create policy "moderators can read application videos"
+  on storage.objects for select
+  to authenticated
+  using (bucket_id = 'application-videos' and public.is_moderator());
+
+-- Seed the initial moderator so the admin page is usable immediately.
+-- Add more emails later with:
+--   insert into public.moderators (email) values ('someone@example.com');
+insert into public.moderators (email, note)
+  values ('nelson@tuttletwins.tv', 'Seeded by supabase-setup.sql')
+  on conflict (email) do nothing;
+
+
 -- ---------- Done ------------------------------------------------------
 -- Verify with:
 --   select count(*) from public.applications;
 --   select id, name, public from storage.buckets where id = 'application-videos';
+--   select email from public.moderators;
