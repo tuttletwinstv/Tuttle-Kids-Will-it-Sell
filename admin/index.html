@@ -158,6 +158,12 @@
   .btn-mini.primary  { background: var(--ink, #0f172a); color: #fff; border-color: var(--ink, #0f172a); }
   .btn-mini.accept   { background: #166534; color: #fff; border-color: #166534; }
   .btn-mini.reject   { background: #991b1b; color: #fff; border-color: #991b1b; }
+  .btn-mini.danger   { color: #991b1b; border-color: #e7b3b3; }
+  .btn-mini.danger:hover { background: #991b1b; color: #fff; border-color: #991b1b; }
+  .btn-mini.active   { background: var(--ink, #0f172a); color: #fff; border-color: var(--ink, #0f172a); }
+  .app-card.trashed  { opacity: 0.85; border-style: dashed; }
+  .trash-note { font-size: 0.8rem; color: var(--muted, #6b7280); margin: 0 0 10px; }
+  .trash-note b { color: #991b1b; }
 
   .empty-state {
     text-align: center; padding: 60px 20px; color: var(--muted, #6b7280);
@@ -197,6 +203,7 @@
       </div>
       <div class="admin-actions">
         <button class="btn-mini" id="refreshBtn">↻ Refresh</button>
+        <button class="btn-mini" id="trashBtn">🗑 Trash</button>
         <button class="btn-mini" id="exportCsvBtn">⬇ Export CSV</button>
         <button class="btn-mini" id="signoutBtn">Sign out</button>
       </div>
@@ -256,8 +263,12 @@
   const emptyState  = document.getElementById("emptyState");
   const toastEl     = document.getElementById("toast");
 
-  let APPS = [];            // full list from the server, sorted newest-first
+  let APPS = [];            // active applications (deleted_at is null)
+  let TRASH = [];           // soft-deleted applications still within the 30-day window
   let SORT = "newest";      // 'newest' | 'oldest' — driven by the sort dropdown
+  let VIEW = "active";      // 'active' | 'trash'
+  const RECOVERY_DAYS = 30;
+  const trashBtn = document.getElementById("trashBtn");
 
   // ----------------------------------------------------------
   // Auth bootstrap — decide which view to render on page load.
@@ -333,10 +344,16 @@
   // the query returns 0 rows and we tell them so.
   // ----------------------------------------------------------
   async function loadApps() {
+    VIEW = "active";
+    trashBtn.classList.remove("active");
+    trashBtn.textContent = "🗑 Trash";
+    emptyState.textContent = "No applications yet.";
     appsListEl.innerHTML = `<p class="empty-state">Loading…</p>`;
+    purgeExpired();   // best-effort, runs in the background
     const { data, error } = await supabase
       .from("applications")
       .select("*")
+      .is("deleted_at", null)
       .order("created_at", { ascending: false });
     if (error) {
       appsListEl.innerHTML = `<p class="empty-state">Couldn't load applications: ${escapeHtml(error.message)}</p>`;
@@ -477,6 +494,34 @@
           ${anyVideo ? `<button class="btn-mini primary" data-dl-all="${escapeAttr(app.id)}">⬇ Download videos</button>` : ""}
           <button class="btn-mini" data-action="reviewed">Mark reviewed</button>
           <button class="btn-mini" data-action="pending">Reset to pending</button>
+          <button class="btn-mini danger" data-del="${escapeAttr(app.id)}">Delete</button>
+        </div>
+      </article>`;
+  }
+
+  // Trash card — soft-deleted application, recoverable until 30 days
+  // after deletion. Lightweight (no video preview): restore or purge.
+  function renderTrashCard(app) {
+    const submitted = formatDate(app.created_at);
+    const deletedOn = formatDate(app.deleted_at);
+    const left = daysLeft(app.deleted_at);
+    return `
+      <article class="app-card trashed" data-id="${escapeAttr(app.id)}">
+        <div class="row">
+          <h2>${escapeHtml(app.applicant_names || "(no name)")}</h2>
+          <span class="status-pill status-rejected">deleted</span>
+        </div>
+        <p class="trash-note">Deleted ${deletedOn} · <b>${left > 0 ? `permanently removed in ${left} day${left === 1 ? "" : "s"}` : "due to be permanently removed"}</b></p>
+        <div class="meta">
+          ${escapeHtml(app.applicant_ages || "")} · ${escapeHtml(app.city || "")}
+          · Parent: <b>${escapeHtml(app.guardian_name || "")}</b>
+          · ${escapeHtml(app.guardian_email || "")}
+          · <b>Submitted:</b> ${submitted}
+        </div>
+        <div class="pitch">${escapeHtml(app.business_pitch || "")}</div>
+        <div class="app-actions">
+          <button class="btn-mini primary" data-restore="${escapeAttr(app.id)}">Restore</button>
+          <button class="btn-mini reject" data-purge="${escapeAttr(app.id)}">Delete permanently</button>
         </div>
       </article>`;
   }
@@ -558,7 +603,114 @@
     }
   });
 
-  document.getElementById("refreshBtn").addEventListener("click", () => loadApps());
+  // ----------------------------------------------------------
+  // Delete (soft, recoverable 30 days), restore, and permanent
+  // delete. RLS lets only whitelisted moderators do these.
+  // ----------------------------------------------------------
+  appsListEl.addEventListener("click", async (e) => {
+    const del     = e.target.closest("button[data-del]");
+    const restore = e.target.closest("button[data-restore]");
+    const purge   = e.target.closest("button[data-purge]");
+
+    if (del) {
+      const id = del.dataset.del;
+      if (!confirm("Delete this application?\n\nIt moves to Trash and is recoverable for 30 days, after which it's permanently removed.")) return;
+      del.disabled = true; del.textContent = "Deleting…";
+      const { error } = await supabase.from("applications").update({ deleted_at: new Date().toISOString() }).eq("id", id);
+      if (error) { del.disabled = false; del.textContent = "Delete"; showToast(`Couldn't delete: ${error.message}`); return; }
+      APPS = APPS.filter((a) => a.id !== id);
+      render();
+      showToast("Moved to Trash — recoverable for 30 days");
+      return;
+    }
+
+    if (restore) {
+      const id = restore.dataset.restore;
+      restore.disabled = true; restore.textContent = "Restoring…";
+      const { error } = await supabase.from("applications").update({ deleted_at: null }).eq("id", id);
+      if (error) { restore.disabled = false; restore.textContent = "Restore"; showToast(`Couldn't restore: ${error.message}`); return; }
+      TRASH = TRASH.filter((a) => a.id !== id);
+      renderTrash();
+      showToast("Restored to applications");
+      return;
+    }
+
+    if (purge) {
+      const id = purge.dataset.purge;
+      if (!confirm("Permanently delete this application and its videos?\n\nThis CANNOT be undone.")) return;
+      purge.disabled = true; purge.textContent = "Deleting…";
+      const ok = await hardDelete(id);
+      if (!ok) { purge.disabled = false; purge.textContent = "Delete permanently"; return; }
+      TRASH = TRASH.filter((a) => a.id !== id);
+      renderTrash();
+      showToast("Permanently deleted");
+      return;
+    }
+  });
+
+  // Permanently remove one application: its videos from storage, then the row.
+  async function hardDelete(id) {
+    const app = TRASH.find((a) => a.id === id) || APPS.find((a) => a.id === id) || { id };
+    const paths = [app.pitch_video_path, app.intro_video_path, app.parent_video_path].filter(Boolean);
+    if (paths.length) {
+      const { error: sErr } = await supabase.storage.from(STORAGE_BUCKET).remove(paths);
+      if (sErr) { showToast(`Couldn't remove videos: ${sErr.message}`); return false; }
+    }
+    const { error } = await supabase.from("applications").delete().eq("id", id);
+    if (error) { showToast(`Couldn't delete: ${error.message}`); return false; }
+    return true;
+  }
+
+  // Trash view: soft-deleted rows still inside the recovery window.
+  async function loadTrash() {
+    VIEW = "trash";
+    trashBtn.classList.add("active");
+    trashBtn.textContent = "← Applications";
+    emptyState.textContent = "Trash is empty.";
+    appsListEl.innerHTML = `<p class="empty-state">Loading…</p>`;
+    const { data, error } = await supabase
+      .from("applications")
+      .select("*")
+      .not("deleted_at", "is", null)
+      .order("deleted_at", { ascending: false });
+    if (error) { appsListEl.innerHTML = `<p class="empty-state">Couldn't load Trash: ${escapeHtml(error.message)}</p>`; return; }
+    TRASH = data || [];
+    renderTrash();
+  }
+
+  function renderTrash() {
+    if (VIEW !== "trash") return;
+    if (TRASH.length === 0) { appsListEl.innerHTML = ""; emptyState.hidden = false; return; }
+    emptyState.hidden = true;
+    appsListEl.innerHTML = TRASH.map(renderTrashCard).join("");
+  }
+
+  // Auto-purge: hard-delete anything soft-deleted longer than the window.
+  async function purgeExpired() {
+    try {
+      const cutoff = new Date(Date.now() - RECOVERY_DAYS * 86400000).toISOString();
+      const { data, error } = await supabase
+        .from("applications")
+        .select("id, pitch_video_path, intro_video_path, parent_video_path")
+        .not("deleted_at", "is", null)
+        .lt("deleted_at", cutoff);
+      if (error || !data || !data.length) return;
+      for (const app of data) {
+        const paths = [app.pitch_video_path, app.intro_video_path, app.parent_video_path].filter(Boolean);
+        if (paths.length) await supabase.storage.from(STORAGE_BUCKET).remove(paths);
+        await supabase.from("applications").delete().eq("id", app.id);
+      }
+    } catch (_) { /* best-effort; don't block the dashboard */ }
+  }
+
+  function daysLeft(deletedAt) {
+    if (!deletedAt) return RECOVERY_DAYS;
+    const ms = new Date(deletedAt).getTime() + RECOVERY_DAYS * 86400000 - Date.now();
+    return Math.max(0, Math.ceil(ms / 86400000));
+  }
+
+  trashBtn.addEventListener("click", () => { VIEW === "trash" ? loadApps() : loadTrash(); });
+  document.getElementById("refreshBtn").addEventListener("click", () => { VIEW === "trash" ? loadTrash() : loadApps(); });
   document.getElementById("sortOrder").addEventListener("change", (e) => {
     SORT = e.target.value === "oldest" ? "oldest" : "newest";
     render();

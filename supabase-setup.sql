@@ -65,6 +65,14 @@ create table if not exists public.applications (
 alter table public.applications
   add column if not exists media_use_acknowledged boolean not null default false;
 
+-- Soft-delete support: deleted_at is null for active rows, set to a
+-- timestamp when a moderator deletes one. Rows stay recoverable for 30
+-- days (the admin purges anything older). null = active / visible.
+alter table public.applications
+  add column if not exists deleted_at timestamptz;
+create index if not exists applications_deleted_at_idx
+  on public.applications (deleted_at);
+
 -- Lightweight indexes for the admin list view.
 create index if not exists applications_created_at_idx
   on public.applications (created_at desc);
@@ -182,6 +190,21 @@ create policy "moderators can update applications"
 drop policy if exists "moderators can read application videos" on storage.objects;
 create policy "moderators can read application videos"
   on storage.objects for select
+  to authenticated
+  using (bucket_id = 'application-videos' and public.is_moderator());
+
+-- Moderators can permanently delete an application (used by the admin's
+-- "delete permanently" action and the 30-day purge of soft-deleted rows).
+drop policy if exists "moderators can delete applications" on public.applications;
+create policy "moderators can delete applications"
+  on public.applications for delete
+  to authenticated
+  using (public.is_moderator());
+
+-- ...and remove its videos from storage when permanently deleting.
+drop policy if exists "moderators can delete application videos" on storage.objects;
+create policy "moderators can delete application videos"
+  on storage.objects for delete
   to authenticated
   using (bucket_id = 'application-videos' and public.is_moderator());
 
