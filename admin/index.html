@@ -37,6 +37,27 @@
   .signin .msg.error { color: #b91c1c; font-weight: 700; }
 
 
+  /* Sort toggle */
+  .sort-bar {
+    display: flex; align-items: center; gap: 8px;
+    margin-bottom: 14px;
+  }
+  .sort-label {
+    font-size: 0.85rem; color: var(--muted, #6b7280);
+    font-weight: 600;
+  }
+  .sort-select {
+    padding: 6px 32px 6px 12px; border-radius: 999px;
+    border: 1px solid rgba(0,0,0,0.15); background: #fff;
+    font-size: 0.85rem; font-weight: 600;
+    color: var(--ink, #0f172a);
+    cursor: pointer;
+    appearance: none;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'><path d='M2 4l4 4 4-4' fill='none' stroke='%230f172a' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/></svg>");
+    background-repeat: no-repeat;
+    background-position: right 10px center;
+  }
+
   /* Application cards */
   #appsList { display: grid; gap: 14px; }
   .app-card {
@@ -150,6 +171,14 @@
       </div>
     </header>
 
+    <div class="sort-bar">
+      <label for="sortOrder" class="sort-label">Sort:</label>
+      <select id="sortOrder" class="sort-select">
+        <option value="newest" selected>Newest first</option>
+        <option value="oldest">Oldest first</option>
+      </select>
+    </div>
+
     <div id="appsList" aria-live="polite"></div>
     <div class="empty-state" id="emptyState" hidden>No applications yet.</div>
   </section>
@@ -197,6 +226,7 @@
   const toastEl     = document.getElementById("toast");
 
   let APPS = [];            // full list from the server, sorted newest-first
+  let SORT = "newest";      // 'newest' | 'oldest' — driven by the sort dropdown
 
   // ----------------------------------------------------------
   // Auth bootstrap — decide which view to render on page load.
@@ -339,9 +369,10 @@
   }
 
   // ----------------------------------------------------------
-  // Render — every application in newest-first order. The server
-  // query already sorts by created_at desc, so we just hand the
-  // list straight to the card template.
+  // Render — every application, ordered by the current SORT
+  // value. The server query returns newest-first; if the user
+  // flips to "oldest," we reverse a copy locally so we don't
+  // mutate APPS.
   // ----------------------------------------------------------
   function render() {
     if (APPS.length === 0) {
@@ -350,7 +381,8 @@
       return;
     }
     emptyState.hidden = true;
-    appsListEl.innerHTML = APPS.map(renderCard).join("");
+    const ordered = SORT === "oldest" ? [...APPS].reverse() : APPS;
+    appsListEl.innerHTML = ordered.map(renderCard).join("");
   }
 
   function renderCard(app) {
@@ -444,6 +476,10 @@
   });
 
   document.getElementById("refreshBtn").addEventListener("click", () => loadApps());
+  document.getElementById("sortOrder").addEventListener("change", (e) => {
+    SORT = e.target.value === "oldest" ? "oldest" : "newest";
+    render();
+  });
 
   // ----------------------------------------------------------
   // CSV export — every contactable application, regardless of
