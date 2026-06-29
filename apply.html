@@ -208,12 +208,14 @@
             <label class="choice"><input type="radio" name="avail" value="yes" required> Yes, fully available</label>
             <label class="choice"><input type="radio" name="avail" value="mostly"> Mostly &mdash; I&rsquo;ll mark exceptions below</label>
           </div>
-          <p class="small muted avail-summary" style="margin:8px 0 12px">Tap any date you&rsquo;re <b>NOT</b> available. Leave blank if you&rsquo;re free all dates.</p>
-          <div class="cal-legend">
-            <span><span class="sw" style="background:var(--panel);border:1px solid var(--line);"></span>Available</span>
-            <span><span class="sw" style="background:var(--accent);"></span>Marked unavailable</span>
+          <div id="availCalWrap" hidden>
+            <p class="small muted avail-summary" style="margin:8px 0 12px">Tap any date you&rsquo;re <b>NOT</b> available. Leave blank if you&rsquo;re free all dates.</p>
+            <div class="cal-legend">
+              <span><span class="sw" style="background:var(--panel);border:1px solid var(--line);"></span>Available</span>
+              <span><span class="sw" style="background:var(--accent);"></span>Marked unavailable</span>
+            </div>
+            <div class="availcal" data-availcal></div>
           </div>
-          <div class="availcal" data-availcal></div>
           <input type="hidden" name="unavailable" id="unavailDates">
         </div>
 
@@ -615,6 +617,27 @@
       if((e.key===' '||e.key==='Enter')){ var c=e.target.closest('[data-k]'); if(c){ e.preventDefault(); toggle(c); } }
     });
     updateSummary();
+
+    // The calendar only makes sense when "Mostly" is chosen. Hide it for
+    // "fully available" and clear any dates that were marked, so the two
+    // answers can't contradict each other.
+    var wrap = document.getElementById('availCalWrap');
+    function clearSelections(){
+      selected = {};
+      root.innerHTML = renderMonth(y,6) + renderMonth(y,7);
+      updateSummary();
+    }
+    document.querySelectorAll('input[name="avail"]').forEach(function(r){
+      r.addEventListener('change', function(){
+        if(!r.checked) return;
+        if(r.value === 'mostly'){
+          if(wrap) wrap.hidden = false;
+        } else {
+          if(wrap) wrap.hidden = true;
+          clearSelections();
+        }
+      });
+    });
   })();
 </script>
 </body>
