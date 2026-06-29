@@ -495,7 +495,7 @@
       // applicant name(s) so the page can greet them; email stays
       // out of the URL / browser history.
       const q = new URLSearchParams({ names: payload.applicant_names });
-      window.location.href = `submitted.html?${q.toString()}`;
+      window.location.href = `final-submitted.html?${q.toString()}`;
     } catch (err) {
       console.error(err);
       setStatus(`${err.message || "Something went wrong — please try again."}`, true);

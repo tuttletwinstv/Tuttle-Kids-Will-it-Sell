@@ -102,6 +102,17 @@
     display: flex; align-items: center; justify-content: center;
     color: #fff; font-size: 0.85rem; aspect-ratio: 16/9;
   }
+  /* Per-video download button (overlay, top-right) */
+  .video-dl {
+    position: absolute; top: 6px; right: 8px; z-index: 2;
+    display: inline-flex; align-items: center; gap: 5px;
+    background: rgba(0,0,0,0.65); color: #fff;
+    border: 0; border-radius: 999px;
+    padding: 4px 10px; font-size: 0.72rem; font-weight: 700;
+    letter-spacing: 0.04em; cursor: pointer;
+  }
+  .video-dl:hover { background: rgba(0,0,0,0.85); }
+  .video-dl:disabled { opacity: 0.6; cursor: progress; }
 
   /* Status pill colors */
   .status-pill {
@@ -389,18 +400,23 @@
     const status = app.status || "pending";
     const sub = `${escapeHtml(app.applicant_ages || "")} · ${escapeHtml(app.city || "")}`;
     const submitted = formatDate(app.created_at);
+    const slotPath = { pitch: app.pitch_video_path, intro: app.intro_video_path, parent: app.parent_video_path };
     const videos = ["pitch","intro","parent"].map((slot) => {
       const url = app._signed?.[slot];
+      const path = slotPath[slot];
       const label = slot === "pitch" ? "Pitch" : slot === "intro" ? "Introduction" : "Parent / guardian";
       if (!url) {
         return `<div class="video-slot missing"><div class="slot-label">${label}</div>No video</div>`;
       }
+      const fname = dlName(app, slot, path);
       return `
         <div class="video-slot">
           <span class="slot-label">${label}</span>
+          <button class="video-dl" data-dl-path="${escapeAttr(path)}" data-dl-name="${escapeAttr(fname)}" title="Download ${label} video" aria-label="Download ${label} video">⬇ Save</button>
           <video controls preload="metadata" src="${escapeAttr(url)}"></video>
         </div>`;
     }).join("");
+    const anyVideo = ["pitch","intro","parent"].some((s) => slotPath[s]);
 
     const unavail = Array.isArray(app.unavailable_dates) ? app.unavailable_dates : [];
     const unavailLine = unavail.length
@@ -438,6 +454,7 @@
         ${history}
         <div class="videos">${videos}</div>
         <div class="app-actions">
+          ${anyVideo ? `<button class="btn-mini primary" data-dl-all="${escapeAttr(app.id)}">⬇ Download videos</button>` : ""}
           <button class="btn-mini" data-action="reviewed">Mark reviewed</button>
           <button class="btn-mini" data-action="pending">Reset to pending</button>
         </div>
@@ -473,6 +490,52 @@
     if (app) app.status = next;
     render();
     showToast(`Marked ${next}`);
+  });
+
+  // ----------------------------------------------------------
+  // Video downloads — pull the file through the authenticated
+  // storage client (RLS grants moderators SELECT on the bucket)
+  // and save it with a readable name. Works per-video or all
+  // three at once.
+  // ----------------------------------------------------------
+  async function downloadOne(path, filename) {
+    const { data, error } = await supabase.storage.from(STORAGE_BUCKET).download(path);
+    if (error) { showToast(`Download failed: ${error.message}`); return false; }
+    const url = URL.createObjectURL(data);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    return true;
+  }
+
+  appsListEl.addEventListener("click", async (e) => {
+    const one = e.target.closest("button[data-dl-path]");
+    if (one) {
+      const orig = one.textContent;
+      one.disabled = true; one.textContent = "…";
+      await downloadOne(one.dataset.dlPath, one.dataset.dlName);
+      one.disabled = false; one.textContent = orig;
+      return;
+    }
+    const all = e.target.closest("button[data-dl-all]");
+    if (all) {
+      const app = APPS.find((a) => a.id === all.dataset.dlAll);
+      if (!app) return;
+      const orig = all.textContent;
+      all.disabled = true; all.textContent = "Downloading…";
+      const slots = [["pitch", app.pitch_video_path], ["intro", app.intro_video_path], ["parent", app.parent_video_path]];
+      let n = 0;
+      for (const [slot, path] of slots) {
+        if (path && await downloadOne(path, dlName(app, slot, path))) n++;
+      }
+      all.disabled = false; all.textContent = orig;
+      showToast(n ? `Downloaded ${n} video${n > 1 ? "s" : ""}` : "No videos to download");
+      return;
+    }
   });
 
   document.getElementById("refreshBtn").addEventListener("click", () => loadApps());
@@ -539,6 +602,9 @@
     }[c]));
   }
   function escapeAttr(s) { return escapeHtml(s); }
+  function videoExt(path) { const m = /\.([a-z0-9]+)$/i.exec(path || ""); return m ? m[1].toLowerCase() : "mp4"; }
+  function slug(s) { return String(s || "applicant").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 40) || "applicant"; }
+  function dlName(app, slot, path) { return `${slug(app.applicant_names)}-${slot}.${videoExt(path)}`; }
   let toastTimer = null;
   function showToast(msg) {
     toastEl.textContent = msg;
