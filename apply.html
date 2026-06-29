@@ -360,6 +360,12 @@
   // clips; we allow a small buffer and hard-block anything longer.
   const MAX_DURATION = { pitchVideo: 40, introVideo: 70, parentVideo: 40 };
 
+  // Max file size (MB). Keep this in sync with the Supabase project's
+  // Storage "Upload file size limit" — a file under this cap but over the
+  // server limit would still fail at upload time.
+  const MAX_UPLOAD_MB = 250;
+  const MAX_UPLOAD_BYTES = MAX_UPLOAD_MB * 1024 * 1024;
+
   // Read a video file's duration via a throwaway <video> element.
   // Resolves to seconds, or null if the browser can't read the metadata
   // (in which case we don't block — better than rejecting a valid file).
@@ -393,6 +399,13 @@
       }
       const mb = (f.size / (1024 * 1024)).toFixed(1);
       if (ttl) ttl.textContent = f.name;
+      // Reject oversized files right here, before any upload is attempted.
+      if (f.size > MAX_UPLOAD_BYTES) {
+        input.value = "";
+        if (ttl) ttl.textContent = origTtl;
+        if (sub) { sub.textContent = `Too large — ${Math.round(f.size / 1048576)} MB. Max ${MAX_UPLOAD_MB} MB. Please use a smaller file.`; sub.style.color = "#b91c1c"; }
+        return;
+      }
       if (sub) { sub.style.color = ""; sub.textContent = `${mb} MB · checking length…`; }
       const dur = await videoDuration(f);
       if (dur != null && dur > limit + 0.5) {
@@ -462,6 +475,12 @@
       ["intro",  introFile,  MAX_DURATION.introVideo],
       ["parent", parentFile, MAX_DURATION.parentVideo],
     ]) {
+      if (file.size > MAX_UPLOAD_BYTES) {
+        setStatus(`Your ${name} video is ${Math.round(file.size / 1048576)} MB — the max is ${MAX_UPLOAD_MB} MB. Please use a smaller file.`, true);
+        submitBtn.disabled = false;
+        submitBtn.textContent = "Submit application";
+        return;
+      }
       const dur = await videoDuration(file);
       if (dur != null && dur > limit + 0.5) {
         setStatus(`Your ${name} video is ${Math.round(dur)}s — the max is ${limit}s. Please trim it and re-upload.`, true);
