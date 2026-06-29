@@ -298,7 +298,7 @@
           </label>
           <label class="choice" style="margin-top:10px;">
             <input type="checkbox" id="mediaUseAck" name="mediaUseAck" required>
-            <span>I agree that the video submissions may be used in the series even if we are not selected.</span>
+            <span>I acknowledge that the video submissions may be used in the series even if we are not selected.</span>
           </label>
         </div>
 
@@ -332,24 +332,52 @@
   const submitBtn   = document.getElementById("submitBtn");
   const submitStat  = document.getElementById("submitStatus");
 
-  // Show the chosen filename in each upload zone so the kid + parent
-  // can see their file actually got picked up.
+  // Per-slot max video length (seconds). The form asks for 30s / 60s
+  // clips; we allow a small buffer and hard-block anything longer.
+  const MAX_DURATION = { pitchVideo: 40, introVideo: 70, parentVideo: 40 };
+
+  // Read a video file's duration via a throwaway <video> element.
+  // Resolves to seconds, or null if the browser can't read the metadata
+  // (in which case we don't block — better than rejecting a valid file).
+  function videoDuration(file) {
+    return new Promise((resolve) => {
+      try {
+        const v = document.createElement("video");
+        v.preload = "metadata";
+        v.onloadedmetadata = () => { const d = v.duration; URL.revokeObjectURL(v.src); resolve(isFinite(d) ? d : null); };
+        v.onerror = () => { URL.revokeObjectURL(v.src); resolve(null); };
+        v.src = URL.createObjectURL(file);
+      } catch (_) { resolve(null); }
+    });
+  }
+
+  // Show the chosen filename in each upload zone, and reject any clip
+  // longer than its slot's limit so over-length videos never upload.
   document.querySelectorAll("[data-file-zone]").forEach((zone) => {
     const input = zone.querySelector("input[type=file]");
     const ttl   = zone.querySelector(".ttl");
     const sub   = zone.querySelector(".sub");
+    const limit = MAX_DURATION[zone.dataset.fileZone] || 70;
     const origTtl = ttl ? ttl.textContent : "";
     const origSub = sub ? sub.textContent : "";
-    input.addEventListener("change", () => {
+    input.addEventListener("change", async () => {
       const f = input.files && input.files[0];
       if (!f) {
         if (ttl) ttl.textContent = origTtl;
-        if (sub) sub.textContent = origSub;
+        if (sub) { sub.textContent = origSub; sub.style.color = ""; }
         return;
       }
       const mb = (f.size / (1024 * 1024)).toFixed(1);
       if (ttl) ttl.textContent = f.name;
-      if (sub) sub.textContent = `${mb} MB · tap to change`;
+      if (sub) { sub.style.color = ""; sub.textContent = `${mb} MB · checking length…`; }
+      const dur = await videoDuration(f);
+      if (dur != null && dur > limit + 0.5) {
+        input.value = "";   // drop the file so it can't be submitted
+        if (ttl) ttl.textContent = origTtl;
+        if (sub) { sub.textContent = `Too long — ${Math.round(dur)}s. Max ${limit}s. Please trim and re-upload.`; sub.style.color = "#b91c1c"; }
+        return;
+      }
+      if (sub) sub.textContent = `${mb} MB${dur != null ? ` · ${Math.round(dur)}s` : ""} · tap to change`;
     });
   });
 
@@ -401,6 +429,22 @@
       submitBtn.disabled = false;
       submitBtn.textContent = "Submit application";
       return;
+    }
+
+    // Backstop: re-verify lengths at submit time in case metadata wasn't
+    // readable when the file was first picked.
+    for (const [name, file, limit] of [
+      ["pitch",  pitchFile,  MAX_DURATION.pitchVideo],
+      ["intro",  introFile,  MAX_DURATION.introVideo],
+      ["parent", parentFile, MAX_DURATION.parentVideo],
+    ]) {
+      const dur = await videoDuration(file);
+      if (dur != null && dur > limit + 0.5) {
+        setStatus(`Your ${name} video is ${Math.round(dur)}s — the max is ${limit}s. Please trim it and re-upload.`, true);
+        submitBtn.disabled = false;
+        submitBtn.textContent = "Submit application";
+        return;
+      }
     }
 
     // We mint the application id client-side so each video can be
