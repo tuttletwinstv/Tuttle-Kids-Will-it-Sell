@@ -360,11 +360,11 @@
   // clips; we allow a small buffer and hard-block anything longer.
   const MAX_DURATION = { pitchVideo: 40, introVideo: 70, parentVideo: 40 };
 
-  // Max file size (MB). Keep this in sync with the Supabase project's
-  // Storage "Upload file size limit" — a file under this cap but over the
-  // server limit would still fail at upload time.
-  const MAX_UPLOAD_MB = 250;
-  const MAX_UPLOAD_BYTES = MAX_UPLOAD_MB * 1024 * 1024;
+  // Max file size. Matches the Supabase "application-videos" bucket limit
+  // (2 GB) so we only block files the server would reject anyway — no legit
+  // phone clip gets denied. Keep in sync if the bucket limit changes.
+  const MAX_UPLOAD_LABEL = "2 GB";
+  const MAX_UPLOAD_BYTES = 2 * 1024 * 1024 * 1024;
 
   // Read a video file's duration via a throwaway <video> element.
   // Resolves to seconds, or null if the browser can't read the metadata
@@ -403,7 +403,7 @@
       if (f.size > MAX_UPLOAD_BYTES) {
         input.value = "";
         if (ttl) ttl.textContent = origTtl;
-        if (sub) { sub.textContent = `Too large — ${Math.round(f.size / 1048576)} MB. Max ${MAX_UPLOAD_MB} MB. Please use a smaller file.`; sub.style.color = "#b91c1c"; }
+        if (sub) { sub.textContent = `Too large — ${(f.size / 1073741824).toFixed(1)} GB. Max ${MAX_UPLOAD_LABEL}. Please use a smaller file.`; sub.style.color = "#b91c1c"; }
         return;
       }
       if (sub) { sub.style.color = ""; sub.textContent = `${mb} MB · checking length…`; }
@@ -476,7 +476,7 @@
       ["parent", parentFile, MAX_DURATION.parentVideo],
     ]) {
       if (file.size > MAX_UPLOAD_BYTES) {
-        setStatus(`Your ${name} video is ${Math.round(file.size / 1048576)} MB — the max is ${MAX_UPLOAD_MB} MB. Please use a smaller file.`, true);
+        setStatus(`Your ${name} video is ${(file.size / 1073741824).toFixed(1)} GB — the max is ${MAX_UPLOAD_LABEL}. Please use a smaller file.`, true);
         submitBtn.disabled = false;
         submitBtn.textContent = "Submit application";
         return;
