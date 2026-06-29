@@ -36,26 +36,6 @@
   .signin .msg.ok    { color: #166534; font-weight: 700; }
   .signin .msg.error { color: #b91c1c; font-weight: 700; }
 
-  /* Filters */
-  .filters {
-    display: flex; gap: 10px; flex-wrap: wrap; align-items: center;
-    margin-bottom: 14px;
-  }
-  .pill {
-    display: inline-flex; align-items: center; gap: 6px;
-    padding: 6px 12px; border-radius: 999px;
-    border: 1px solid rgba(0,0,0,0.15); background: #fff;
-    font-size: 0.85rem; cursor: pointer; user-select: none;
-    color: var(--ink, #0f172a);
-  }
-  .pill[aria-pressed="true"] { background: var(--ink, #0f172a); color: #fff; border-color: var(--ink, #0f172a); }
-  .pill .count { font-weight: 700; opacity: 0.8; }
-  .filters input[type="search"] {
-    flex: 1 1 220px; min-width: 0;
-    padding: 8px 12px; border-radius: 999px;
-    border: 1px solid rgba(0,0,0,0.15); background: #fff;
-    font: inherit;
-  }
 
   /* Application cards */
   #appsList { display: grid; gap: 14px; }
@@ -170,17 +150,8 @@
       </div>
     </header>
 
-    <div class="filters" id="statusFilters" role="tablist" aria-label="Filter by status">
-      <button class="pill" data-status="all"      aria-pressed="true">All <span class="count" data-count="all">0</span></button>
-      <button class="pill" data-status="pending"  aria-pressed="false">Pending <span class="count" data-count="pending">0</span></button>
-      <button class="pill" data-status="reviewed" aria-pressed="false">Reviewed <span class="count" data-count="reviewed">0</span></button>
-      <button class="pill" data-status="accepted" aria-pressed="false">Accepted <span class="count" data-count="accepted">0</span></button>
-      <button class="pill" data-status="rejected" aria-pressed="false">Rejected <span class="count" data-count="rejected">0</span></button>
-      <input id="searchInput" type="search" placeholder="Search name, city, email…" autocomplete="off">
-    </div>
-
     <div id="appsList" aria-live="polite"></div>
-    <div class="empty-state" id="emptyState" hidden>No applications match the current filters.</div>
+    <div class="empty-state" id="emptyState" hidden>No applications yet.</div>
   </section>
 
 </div>
@@ -223,11 +194,9 @@
   const userEmailEl = document.getElementById("userEmail");
   const appsListEl  = document.getElementById("appsList");
   const emptyState  = document.getElementById("emptyState");
-  const searchInput = document.getElementById("searchInput");
   const toastEl     = document.getElementById("toast");
 
-  let APPS  = [];           // full list from the server
-  let STATE = { status: "all", search: "" };
+  let APPS = [];            // full list from the server, sorted newest-first
 
   // ----------------------------------------------------------
   // Auth bootstrap — decide which view to render on page load.
@@ -370,36 +339,18 @@
   }
 
   // ----------------------------------------------------------
-  // Filter + render
+  // Render — every application in newest-first order. The server
+  // query already sorts by created_at desc, so we just hand the
+  // list straight to the card template.
   // ----------------------------------------------------------
   function render() {
-    const counts = { all: APPS.length, pending: 0, reviewed: 0, accepted: 0, rejected: 0 };
-    APPS.forEach((a) => {
-      if (counts[a.status] !== undefined) counts[a.status]++;
-    });
-    Object.entries(counts).forEach(([k, v]) => {
-      const el = document.querySelector(`[data-count="${k}"]`);
-      if (el) el.textContent = v;
-    });
-
-    const q = STATE.search.trim().toLowerCase();
-    const filtered = APPS.filter((a) => {
-      if (STATE.status !== "all" && a.status !== STATE.status) return false;
-      if (!q) return true;
-      const hay = [
-        a.applicant_names, a.guardian_name, a.guardian_email,
-        a.city, a.business_pitch,
-      ].join(" ").toLowerCase();
-      return hay.includes(q);
-    });
-
-    if (filtered.length === 0) {
+    if (APPS.length === 0) {
       appsListEl.innerHTML = "";
       emptyState.hidden = false;
       return;
     }
     emptyState.hidden = true;
-    appsListEl.innerHTML = filtered.map(renderCard).join("");
+    appsListEl.innerHTML = APPS.map(renderCard).join("");
   }
 
   function renderCard(app) {
@@ -455,10 +406,8 @@
         ${history}
         <div class="videos">${videos}</div>
         <div class="app-actions">
-          <button class="btn-mini accept" data-action="accepted">Accept</button>
-          <button class="btn-mini reject" data-action="rejected">Reject</button>
-          <button class="btn-mini"        data-action="reviewed">Mark reviewed</button>
-          <button class="btn-mini"        data-action="pending">Reset to pending</button>
+          <button class="btn-mini" data-action="reviewed">Mark reviewed</button>
+          <button class="btn-mini" data-action="pending">Reset to pending</button>
         </div>
       </article>`;
   }
@@ -492,23 +441,6 @@
     if (app) app.status = next;
     render();
     showToast(`Marked ${next}`);
-  });
-
-  // ----------------------------------------------------------
-  // Filter pills + search
-  // ----------------------------------------------------------
-  document.getElementById("statusFilters").addEventListener("click", (e) => {
-    const pill = e.target.closest(".pill");
-    if (!pill) return;
-    STATE.status = pill.dataset.status;
-    document.querySelectorAll(".pill").forEach((p) =>
-      p.setAttribute("aria-pressed", p === pill ? "true" : "false")
-    );
-    render();
-  });
-  searchInput.addEventListener("input", () => {
-    STATE.search = searchInput.value;
-    render();
   });
 
   document.getElementById("refreshBtn").addEventListener("click", () => loadApps());
