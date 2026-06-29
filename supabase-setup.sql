@@ -65,6 +65,11 @@ create table if not exists public.applications (
 alter table public.applications
   add column if not exists media_use_acknowledged boolean not null default false;
 
+-- Survey: how much of the Tuttle Twins Cartoon the applicant has seen
+-- ("Haven't seen it" | "One or less" | "2-3" | "All of it").
+alter table public.applications
+  add column if not exists seen_show text;
+
 -- Soft-delete support: deleted_at is null for active rows, set to a
 -- timestamp when a moderator deletes one. Rows stay recoverable for 30
 -- days (the admin purges anything older). null = active / visible.

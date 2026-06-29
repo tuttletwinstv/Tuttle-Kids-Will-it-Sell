@@ -484,6 +484,7 @@
         <div class="meta">
           <b>Market Aug 8:</b> ${market}
           · <b>Weekly visits:</b> ${weekly}
+          · <b>Seen the show:</b> ${escapeHtml(app.seen_show || "—")}
           · <b>Submitted:</b> ${submitted}
         </div>
         ${unavailLine}
@@ -728,7 +729,7 @@
       "applicant_names","applicant_ages","city",
       "guardian_name","guardian_email","guardian_phone",
       "can_attend_market","weekly_availability","unavailable_dates",
-      "business_pitch","previous_market_history","signature",
+      "business_pitch","previous_market_history","seen_show","signature",
       "consent_acknowledged","media_use_acknowledged",
     ];
     const rows = [cols.join(",")];

@@ -243,6 +243,20 @@
 
         <hr class="hr">
 
+        <!-- The show -->
+        <p class="subhead">The Tuttle Twins Cartoon</p>
+        <div class="field">
+          <label>Have you seen the Tuttle Twins Cartoon? If so, how many seasons? <span class="req">*</span></label>
+          <div class="choices">
+            <label class="choice"><input type="radio" name="seenShow" value="Haven't seen it" required> Haven&rsquo;t seen it</label>
+            <label class="choice"><input type="radio" name="seenShow" value="One or less"> One or less</label>
+            <label class="choice"><input type="radio" name="seenShow" value="2-3"> 2-3</label>
+            <label class="choice"><input type="radio" name="seenShow" value="All of it"> All of it</label>
+          </div>
+        </div>
+
+        <hr class="hr">
+
         <!-- Video uploads -->
         <p class="subhead">Pitch videos</p>
         <p class="small muted" style="margin-top:-2px">All videos must be filmed horizontal (landscape).</p>
@@ -452,6 +466,7 @@
       unavailable_dates:       (val("unavailDates") || "").split(",").map((s) => s.trim()).filter(Boolean),
       business_pitch:          val("businessPitch"),
       previous_market_history: val("marketHistory") || null,
+      seen_show:               radio("seenShow"),
       signature:               val("signature"),
       consent_acknowledged:    document.getElementById("consentAck").checked,
       media_use_acknowledged:  document.getElementById("mediaUseAck").checked,
