@@ -53,12 +53,17 @@ create table if not exists public.applications (
   -- Consent + signature
   signature                text          not null,
   consent_acknowledged     boolean       not null    default false,
+  media_use_acknowledged   boolean       not null    default false,
 
   -- Moderator workflow
   status                   text          not null    default 'pending',
                               -- 'pending' | 'reviewed' | 'accepted' | 'rejected'
   reviewer_notes           text
 );
+
+-- Backfill for tables created before media_use_acknowledged existed.
+alter table public.applications
+  add column if not exists media_use_acknowledged boolean not null default false;
 
 -- Lightweight indexes for the admin list view.
 create index if not exists applications_created_at_idx

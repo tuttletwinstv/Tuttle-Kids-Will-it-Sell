@@ -296,6 +296,10 @@
             <input type="checkbox" id="consentAck" name="consentAck" required>
             <span>I am the parent/guardian and I acknowledge the consent &amp; release by signing digitally.</span>
           </label>
+          <label class="choice" style="margin-top:10px;">
+            <input type="checkbox" id="mediaUseAck" name="mediaUseAck" required>
+            <span>I agree that the video submissions may be used in the series even if we are not selected.</span>
+          </label>
         </div>
 
         <button type="submit" id="submitBtn" class="btn btn-block" style="margin-top:10px;">Submit application</button>
@@ -385,6 +389,7 @@
       previous_market_history: val("marketHistory") || null,
       signature:               val("signature"),
       consent_acknowledged:    document.getElementById("consentAck").checked,
+      media_use_acknowledged:  document.getElementById("mediaUseAck").checked,
       status:                  "pending",
     };
 
