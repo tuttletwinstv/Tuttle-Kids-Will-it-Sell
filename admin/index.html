@@ -84,6 +84,10 @@
     background: #fff; border: 1px solid rgba(0,0,0,0.08);
     border-radius: 16px; padding: 16px 18px; overflow: hidden;
   }
+  /* Card tint reflects the Yes / Maybe / No rating */
+  .app-card.rated-yes   { background: #f0fdf4; border-color: #bbf7d0; }
+  .app-card.rated-maybe { background: #fffbeb; border-color: #fde68a; }
+  .app-card.rated-no    { background: #fef2f2; border-color: #fecaca; }
   .app-card .row {
     display: flex; align-items: center; justify-content: space-between;
     gap: 10px; flex-wrap: wrap; margin-bottom: 8px;
@@ -509,7 +513,7 @@
       </span>`;
 
     return `
-      <article class="app-card" data-id="${escapeAttr(app.id)}">
+      <article class="app-card${rating ? ` rated-${escapeAttr(rating)}` : ""}" data-id="${escapeAttr(app.id)}">
         <div class="row">
           <h2>${escapeHtml(app.applicant_names || "(no name)")}</h2>
           <span style="display:inline-flex;gap:6px;align-items:center;">${ratingPill}<span class="status-pill status-${escapeAttr(status)}">${escapeHtml(status)}</span></span>
@@ -533,8 +537,6 @@
         <div class="app-actions">
           ${anyVideo ? `<button class="btn-mini primary" data-dl-all="${escapeAttr(app.id)}">⬇ Download videos</button>` : ""}
           ${rateBtns}
-          <button class="btn-mini" data-action="reviewed">Mark reviewed</button>
-          <button class="btn-mini" data-action="pending">Reset to pending</button>
           <button class="btn-mini danger" data-del="${escapeAttr(app.id)}">Delete</button>
         </div>
       </article>`;
@@ -609,15 +611,17 @@
     if (!id) return;
     const app  = APPS.find((a) => a.id === id);
     const next = (app && app.rating === btn.dataset.rate) ? null : btn.dataset.rate;
+    // Rating an application marks it reviewed. Clearing leaves status as-is.
+    const patch = next ? { rating: next, status: "reviewed" } : { rating: null };
 
     btn.disabled = true;
     const { error } = await supabase
       .from("applications")
-      .update({ rating: next })
+      .update(patch)
       .eq("id", id);
     btn.disabled = false;
     if (error) { showToast(`Couldn't save rating: ${error.message}`); return; }
-    if (app) app.rating = next;
+    if (app) { app.rating = next; if (next) app.status = "reviewed"; }
     render();
     showToast(next ? `Rated ${next}` : "Rating cleared");
   });
