@@ -70,6 +70,10 @@ alter table public.applications
 alter table public.applications
   add column if not exists seen_show text;
 
+-- Moderator triage rating ('yes' | 'maybe' | 'no'; null = unrated).
+alter table public.applications
+  add column if not exists rating text;
+
 -- Soft-delete support: deleted_at is null for active rows, set to a
 -- timestamp when a moderator deletes one. Rows stay recoverable for 30
 -- days (the admin purges anything older). null = active / visible.

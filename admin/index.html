@@ -161,6 +161,17 @@
   .btn-mini.danger   { color: #991b1b; border-color: #e7b3b3; }
   .btn-mini.danger:hover { background: #991b1b; color: #fff; border-color: #991b1b; }
   .btn-mini.active   { background: var(--ink, #0f172a); color: #fff; border-color: var(--ink, #0f172a); }
+  /* Rating (Yes / Maybe / No) */
+  .rating-pill { display:inline-flex; align-items:center; padding:3px 10px; border-radius:999px; font-size:0.78rem; font-weight:700; letter-spacing:0.04em; text-transform:uppercase; }
+  .rating-yes   { background:#dcfce7; color:#166534; }
+  .rating-maybe { background:#fef3c7; color:#92400e; }
+  .rating-no    { background:#fee2e2; color:#991b1b; }
+  .rate-group { display:inline-flex; gap:0; border:1px solid rgba(0,0,0,0.15); border-radius:999px; overflow:hidden; }
+  .rate-group .btn-mini { border:0; border-radius:0; }
+  .rate-group .btn-mini + .btn-mini { border-left:1px solid rgba(0,0,0,0.12); }
+  .btn-mini.rate-on-yes   { background:#166534; color:#fff; }
+  .btn-mini.rate-on-maybe { background:#b45309; color:#fff; }
+  .btn-mini.rate-on-no    { background:#991b1b; color:#fff; }
   .app-card.trashed  { opacity: 0.85; border-style: dashed; }
   .trash-note { font-size: 0.8rem; color: var(--muted, #6b7280); margin: 0 0 10px; }
   .trash-note b { color: #991b1b; }
@@ -215,6 +226,14 @@
         <option value="newest" selected>Newest first</option>
         <option value="oldest">Oldest first</option>
       </select>
+      <label for="ratingFilter" class="sort-label" style="margin-left:8px;">Show:</label>
+      <select id="ratingFilter" class="sort-select">
+        <option value="all" selected>All ratings</option>
+        <option value="yes">Yes</option>
+        <option value="maybe">Maybe</option>
+        <option value="no">No</option>
+        <option value="unrated">Unrated</option>
+      </select>
     </div>
 
     <div id="appsList" aria-live="polite"></div>
@@ -266,6 +285,7 @@
   let APPS = [];            // active applications (deleted_at is null)
   let TRASH = [];           // soft-deleted applications still within the 30-day window
   let SORT = "newest";      // 'newest' | 'oldest' — driven by the sort dropdown
+  let RATING_FILTER = "all"; // 'all' | 'yes' | 'maybe' | 'no' | 'unrated'
   let VIEW = "active";      // 'active' | 'trash'
   const RECOVERY_DAYS = 30;
   const trashBtn = document.getElementById("trashBtn");
@@ -429,7 +449,15 @@
       return;
     }
     emptyState.hidden = true;
-    const ordered = SORT === "oldest" ? [...APPS].reverse() : APPS;
+    let ordered = SORT === "oldest" ? [...APPS].reverse() : APPS;
+    if (RATING_FILTER !== "all") {
+      ordered = ordered.filter((a) =>
+        RATING_FILTER === "unrated" ? !a.rating : a.rating === RATING_FILTER);
+    }
+    if (ordered.length === 0) {
+      appsListEl.innerHTML = `<p class="empty-state">No applications rated “${escapeHtml(RATING_FILTER)}”.</p>`;
+      return;
+    }
     appsListEl.innerHTML = ordered.map(renderCard).join("");
   }
 
@@ -469,11 +497,22 @@
       ? `<div class="pitch"><b>Market history:</b> ${escapeHtml(app.previous_market_history)}</div>`
       : "";
 
+    const rating = app.rating || "";
+    const ratingPill = rating
+      ? `<span class="rating-pill rating-${escapeAttr(rating)}">${escapeHtml(rating)}</span>`
+      : "";
+    const rateBtns = `
+      <span class="rate-group" role="group" aria-label="Rate this application">
+        <button class="btn-mini${rating === "yes" ? " rate-on-yes" : ""}" data-rate="yes">Yes</button>
+        <button class="btn-mini${rating === "maybe" ? " rate-on-maybe" : ""}" data-rate="maybe">Maybe</button>
+        <button class="btn-mini${rating === "no" ? " rate-on-no" : ""}" data-rate="no">No</button>
+      </span>`;
+
     return `
       <article class="app-card" data-id="${escapeAttr(app.id)}">
         <div class="row">
           <h2>${escapeHtml(app.applicant_names || "(no name)")}</h2>
-          <span class="status-pill status-${escapeAttr(status)}">${escapeHtml(status)}</span>
+          <span style="display:inline-flex;gap:6px;align-items:center;">${ratingPill}<span class="status-pill status-${escapeAttr(status)}">${escapeHtml(status)}</span></span>
         </div>
         <div class="meta">
           ${sub} ·
@@ -493,6 +532,7 @@
         <div class="videos">${videos}</div>
         <div class="app-actions">
           ${anyVideo ? `<button class="btn-mini primary" data-dl-all="${escapeAttr(app.id)}">⬇ Download videos</button>` : ""}
+          ${rateBtns}
           <button class="btn-mini" data-action="reviewed">Mark reviewed</button>
           <button class="btn-mini" data-action="pending">Reset to pending</button>
           <button class="btn-mini danger" data-del="${escapeAttr(app.id)}">Delete</button>
@@ -556,6 +596,30 @@
     if (app) app.status = next;
     render();
     showToast(`Marked ${next}`);
+  });
+
+  // ----------------------------------------------------------
+  // Rating — Yes / Maybe / No triage. Click again to clear.
+  // ----------------------------------------------------------
+  appsListEl.addEventListener("click", async (e) => {
+    const btn = e.target.closest("button[data-rate]");
+    if (!btn) return;
+    const card = btn.closest(".app-card");
+    const id   = card?.dataset?.id;
+    if (!id) return;
+    const app  = APPS.find((a) => a.id === id);
+    const next = (app && app.rating === btn.dataset.rate) ? null : btn.dataset.rate;
+
+    btn.disabled = true;
+    const { error } = await supabase
+      .from("applications")
+      .update({ rating: next })
+      .eq("id", id);
+    btn.disabled = false;
+    if (error) { showToast(`Couldn't save rating: ${error.message}`); return; }
+    if (app) app.rating = next;
+    render();
+    showToast(next ? `Rated ${next}` : "Rating cleared");
   });
 
   // ----------------------------------------------------------
@@ -716,6 +780,10 @@
     SORT = e.target.value === "oldest" ? "oldest" : "newest";
     render();
   });
+  document.getElementById("ratingFilter").addEventListener("change", (e) => {
+    RATING_FILTER = e.target.value;
+    render();
+  });
 
   // ----------------------------------------------------------
   // CSV export — every contactable application, regardless of
@@ -725,7 +793,7 @@
   document.getElementById("exportCsvBtn").addEventListener("click", () => {
     if (!APPS.length) { showToast("Nothing to export."); return; }
     const cols = [
-      "created_at","status",
+      "created_at","status","rating",
       "applicant_names","applicant_ages","city",
       "guardian_name","guardian_email","guardian_phone",
       "can_attend_market","weekly_availability","unavailable_dates",
