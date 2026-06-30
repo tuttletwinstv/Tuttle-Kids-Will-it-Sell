@@ -465,6 +465,42 @@
     appsListEl.innerHTML = ordered.map(renderCard).join("");
   }
 
+  // Update a single card in place — tint, pills, and rate-button state —
+  // WITHOUT rebuilding the list, so the <video> elements never reload.
+  function patchCardInPlace(id) {
+    const card = appsListEl.querySelector(`.app-card[data-id="${id}"]`);
+    const app = APPS.find((a) => a.id === id);
+    if (!card || !app) return;
+
+    // If a rating filter is active and this card no longer matches it,
+    // drop just this node (don't touch the others).
+    if (RATING_FILTER !== "all") {
+      const matches = RATING_FILTER === "unrated" ? !app.rating : app.rating === RATING_FILTER;
+      if (!matches) {
+        card.remove();
+        if (!appsListEl.querySelector(".app-card")) { appsListEl.innerHTML = ""; emptyState.hidden = false; }
+        return;
+      }
+    }
+
+    card.classList.remove("rated-yes", "rated-maybe", "rated-no");
+    if (app.rating) card.classList.add(`rated-${app.rating}`);
+
+    const pills = card.querySelector(".pills");
+    if (pills) {
+      const status = app.status || "pending";
+      const ratingPill = app.rating ? `<span class="rating-pill rating-${app.rating}">${app.rating}</span>` : "";
+      pills.innerHTML = `${ratingPill}<span class="status-pill status-${status}">${status}</span>`;
+    }
+
+    card.querySelectorAll("button[data-rate]").forEach((b) => {
+      const r = b.dataset.rate;
+      b.classList.toggle("rate-on-yes", app.rating === "yes" && r === "yes");
+      b.classList.toggle("rate-on-maybe", app.rating === "maybe" && r === "maybe");
+      b.classList.toggle("rate-on-no", app.rating === "no" && r === "no");
+    });
+  }
+
   function renderCard(app) {
     const status = app.status || "pending";
     const sub = `${escapeHtml(app.applicant_ages || "")} · ${escapeHtml(app.city || "")}`;
@@ -516,7 +552,7 @@
       <article class="app-card${rating ? ` rated-${escapeAttr(rating)}` : ""}" data-id="${escapeAttr(app.id)}">
         <div class="row">
           <h2>${escapeHtml(app.applicant_names || "(no name)")}</h2>
-          <span style="display:inline-flex;gap:6px;align-items:center;">${ratingPill}<span class="status-pill status-${escapeAttr(status)}">${escapeHtml(status)}</span></span>
+          <span class="pills" style="display:inline-flex;gap:6px;align-items:center;">${ratingPill}<span class="status-pill status-${escapeAttr(status)}">${escapeHtml(status)}</span></span>
         </div>
         <div class="meta">
           ${sub} ·
@@ -622,7 +658,7 @@
     btn.disabled = false;
     if (error) { showToast(`Couldn't save rating: ${error.message}`); return; }
     if (app) { app.rating = next; if (next) app.status = "reviewed"; }
-    render();
+    patchCardInPlace(id);
     showToast(next ? `Rated ${next}` : "Rating cleared");
   });
 
@@ -688,7 +724,9 @@
       const { error } = await supabase.from("applications").update({ deleted_at: new Date().toISOString() }).eq("id", id);
       if (error) { del.disabled = false; del.textContent = "Delete"; showToast(`Couldn't delete: ${error.message}`); return; }
       APPS = APPS.filter((a) => a.id !== id);
-      render();
+      const card = del.closest(".app-card");
+      if (card) card.remove();
+      if (!appsListEl.querySelector(".app-card")) { appsListEl.innerHTML = ""; emptyState.hidden = false; }
       showToast("Moved to Trash — recoverable for 30 days");
       return;
     }
