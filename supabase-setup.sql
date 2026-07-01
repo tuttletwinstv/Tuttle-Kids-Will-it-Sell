@@ -181,6 +181,14 @@ create or replace function public.is_moderator() returns boolean
     );
   $$;
 
+-- Lock the whitelist down. Enable RLS with NO policies so the browser-
+-- exposed anon (and any authenticated) role can't read the moderator
+-- emails or add themselves. is_moderator() above is security definer, so
+-- it still works; the service_role key (SQL editor / dashboard) manages
+-- the list. Without this, anyone with the public anon key could insert
+-- their own email and then read every application.
+alter table public.moderators enable row level security;
+
 drop policy if exists "moderators can read applications"   on public.applications;
 drop policy if exists "moderators can update applications" on public.applications;
 
