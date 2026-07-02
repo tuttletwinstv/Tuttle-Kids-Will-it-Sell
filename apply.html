@@ -125,7 +125,8 @@
   <script async src="https://plausible.io/js/pa-AGbwgZF6GRKFPNRXDVVTr.js"></script>
   <script>
     window.plausible=window.plausible||function(){(plausible.q=plausible.q||[]).push(arguments)},plausible.init=plausible.init||function(i){plausible.o=i||{}};
-    plausible.init()
+    plausible.init({ outboundLinks: true, fileDownloads: true });
+    plausible('Apply Start')
   </script>
 </head>
 <body>
@@ -326,7 +327,7 @@
             <span>I am the parent/guardian and I acknowledge the consent &amp; release by signing digitally.</span>
           </label>
           <label class="choice" style="margin-top:10px;">
-            <input type="checkbox" id="mediaUseAck" name="mediaUseAck" required>
+            <input type="checkbox" id="mediaUseAck" name="mediaUseAck" required onchange="this.checked && window.plausible && window.plausible('Media Consent Acknowledged')">
             <span>I acknowledge that the video submissions may be used in the series even if we are not selected.</span>
           </label>
         </div>
@@ -571,6 +572,7 @@
             setPct(100);
             zone?.classList.add("upload-done");
             zone?.classList.remove("uploading");
+            window.plausible && window.plausible('Video Upload Success', { props: { slot } });
             resolve();
           } else {
             zone?.classList.remove("uploading");
@@ -615,6 +617,7 @@
         });
       if (insErr) throw new Error(`Couldn't save your application: ${insErr.message}`);
 
+      window.plausible && window.plausible('Application Submitted');
       // All good — redirect to the thank-you page. Pass only the
       // applicant name(s) so the page can greet them; email stays
       // out of the URL / browser history.
