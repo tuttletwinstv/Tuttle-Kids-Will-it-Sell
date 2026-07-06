@@ -15,6 +15,10 @@
     <h1 id="epTitle">…</h1>
     <div class="row-split" style="gap:10px;">
       <span class="spend" id="spend"></span>
+      <span class="view-toggle" role="tablist">
+        <button id="viewBoard">Board</button>
+        <button id="viewOverview">Overview</button>
+      </span>
       <button class="btn-mini" id="reelBtn">▶ Play reel</button>
       <button class="btn-mini primary" id="addShotBtn">+ Add shot</button>
     </div>
@@ -47,7 +51,7 @@
 <script type="module">
 import {
   db, ai, supabase, escapeHtml, toast, fmtCost, signedUrl,
-  SHOT_TYPES, subtypeLabel, MODELS,
+  SHOT_TYPES, subtypeLabel, MODELS, SUBTYPE_COLORS, isLightColor,
   buildGenerationPlan, buildModelInput, pollPrediction, outputUrlOf, textOutputOf, costOf,
 } from "./studio-store.js";
 import { requireModerator } from "./studio-auth.js";
@@ -256,13 +260,94 @@ async function hydrateGenUrls(gens) {
   }));
 }
 
+// ---------------------------------------------------------------
+// View toggle: full board vs. simplified color-coded overview.
+// ---------------------------------------------------------------
+let VIEW = localStorage.getItem("studioEpisodeView") || "board";
+
+function setView(v) {
+  VIEW = v;
+  localStorage.setItem("studioEpisodeView", v);
+  document.getElementById("viewBoard").classList.toggle("on", v === "board");
+  document.getElementById("viewOverview").classList.toggle("on", v === "overview");
+  renderShots();
+}
+document.getElementById("viewBoard").addEventListener("click", () => setView("board"));
+document.getElementById("viewOverview").addEventListener("click", () => setView("overview"));
+
+function typePill(subtype) {
+  const c = SUBTYPE_COLORS[subtype] || "#6b7280";
+  const fg = isLightColor(c) ? "#1f2937" : "#fff";
+  return `<span class="pill" style="background:${c}; color:${fg};">${subtypeLabel(subtype)}</span>`;
+}
+
+// One-line "what's being said" for a shot: first meaningful script
+// line, else the description, else nothing.
+function shotBullet(shot) {
+  const line = (shot.script_text || "").split("\n").map(l => l.trim()).filter(Boolean).join(" ");
+  const say = line || shot.description || "";
+  return say.length > 170 ? say.slice(0, 167) + "…" : say;
+}
+
+function overviewHtml() {
+  // Distribution bar + legend: subtypes in taxonomy order, only those used.
+  const counts = {};
+  for (const s of SHOTS) counts[s.subtype] = (counts[s.subtype] || 0) + 1;
+  const ordered = Object.values(SHOT_TYPES).flatMap(cat => Object.keys(cat.subtypes)).filter(k => counts[k]);
+
+  const bar = ordered.map(k =>
+    `<div style="flex:${counts[k]}; background:${SUBTYPE_COLORS[k]};" title="${subtypeLabel(k)} × ${counts[k]}"></div>`).join("");
+  const legend = ordered.map(k =>
+    `<span><span class="dot" style="background:${SUBTYPE_COLORS[k]};"></span>${subtypeLabel(k)} · <b>${counts[k]}</b></span>`).join("");
+
+  const rows = SHOTS.map((s, i) => {
+    const say = shotBullet(s);
+    return `
+    <div class="ov-row" data-goto="${s.id}" style="border-left-color:${SUBTYPE_COLORS[s.subtype] || "#6b7280"};" title="Open in board view">
+      <span class="pos">${i + 1}</span>
+      <div class="body">
+        <b>${escapeHtml(s.title || "untitled")}</b>
+        <p class="say ${say ? "" : "none"}">${say ? escapeHtml(say) : "no script / description yet"}</p>
+      </div>
+      ${typePill(s.subtype)}
+    </div>`;
+  }).join("");
+
+  return `
+    <div class="type-bar">${bar}</div>
+    <div class="type-legend">${legend}</div>
+    <div class="ov-list">${rows}</div>`;
+}
+
+function wireOverview() {
+  shotList.querySelectorAll("[data-goto]").forEach(row => {
+    row.addEventListener("click", () => {
+      setView("board");
+      const card = shotList.querySelector(`.shot-card[data-shot="${row.dataset.goto}"]`);
+      if (card) {
+        card.scrollIntoView({ behavior: "smooth", block: "center" });
+        card.classList.add("flash");
+        setTimeout(() => card.classList.add("flash-off"), 900);
+        setTimeout(() => card.classList.remove("flash", "flash-off"), 2200);
+      }
+    });
+  });
+}
+
 async function renderShots() {
   SHOTS.sort((a, b) => a.position - b.position);
-  await hydrateGenUrls(Object.values(GENS).flat());
+  document.getElementById("viewBoard").classList.toggle("on", VIEW === "board");
+  document.getElementById("viewOverview").classList.toggle("on", VIEW === "overview");
   if (!SHOTS.length) {
     shotList.innerHTML = `<p class="empty-state">No shots yet.<br>Paste the script on the left and hit <b>Break down into shots</b>, or add shots by hand.</p>`;
     return;
   }
+  if (VIEW === "overview") {
+    shotList.innerHTML = overviewHtml();
+    wireOverview();
+    return;
+  }
+  await hydrateGenUrls(Object.values(GENS).flat());
   shotList.innerHTML = SHOTS.map((s, i) => shotCardHtml(s, i)).join("");
   wireShotCards();
 }
