@@ -46,6 +46,32 @@ export const SHOT_TYPES = {
   },
 };
 
+// Color coding for the overview: one hue per source family, darker =
+// more scripted/direct, lighter = looser/b-roll.
+//   animated -> violets · crew -> blues · kid -> greens · adult -> ambers
+export const SUBTYPE_COLORS = {
+  anim_fully_scripted:    "#5b21b6",
+  anim_reactive_scripted: "#7c3aed",
+  anim_short_term:        "#a78bfa",
+  anim_live:              "#d8ccf9",
+  crew_dtc:    "#1d4ed8",
+  crew_story:  "#3b82f6",
+  crew_broll:  "#a5c8fd",
+  kid_dtc:     "#15803d",
+  kid_story:   "#34c268",
+  kid_broll:   "#a2ecbc",
+  adult_dtc:   "#b45309",
+  adult_story: "#f59e0b",
+  adult_broll: "#fcd97e",
+};
+
+// Whether a hex color is light enough to need dark text on top.
+export function isLightColor(hex) {
+  const n = parseInt(hex.slice(1), 16);
+  const lum = 0.299 * (n >> 16 & 255) + 0.587 * (n >> 8 & 255) + 0.114 * (n & 255);
+  return lum > 160;
+}
+
 export function subtypeLabel(subtype) {
   for (const cat of Object.values(SHOT_TYPES)) {
     if (cat.subtypes[subtype]) return cat.subtypes[subtype];

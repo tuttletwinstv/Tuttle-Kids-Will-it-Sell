@@ -187,6 +187,46 @@ label.field { display: block; font-size: 0.8rem; font-weight: 700; color: var(--
 .spend { font-size: 0.85rem; color: var(--muted); }
 .spend b { color: var(--ink); }
 
+/* ---------- Overview (simplified) view ---------- */
+.view-toggle {
+  display: inline-flex; border: 1px solid rgba(0,0,0,0.15);
+  border-radius: 999px; overflow: hidden; background: #fff;
+}
+.view-toggle button {
+  border: 0; background: transparent; padding: 5px 14px;
+  font: inherit; font-size: 0.8rem; font-weight: 600; cursor: pointer; color: var(--ink);
+}
+.view-toggle button.on { background: var(--ink); color: #fff; }
+.type-bar {
+  display: flex; height: 16px; border-radius: 999px; overflow: hidden;
+  border: 1px solid rgba(0,0,0,0.08);
+}
+.type-bar div { min-width: 5px; }
+.type-legend {
+  display: flex; flex-wrap: wrap; gap: 4px 16px;
+  font-size: 0.78rem; color: #374151; margin: 8px 0 16px;
+}
+.type-legend .dot {
+  display: inline-block; width: 10px; height: 10px;
+  border-radius: 3px; margin-right: 5px; vertical-align: -1px;
+}
+.ov-list { display: grid; gap: 6px; }
+.ov-row {
+  display: flex; gap: 10px; align-items: flex-start;
+  background: #fff; border: 1px solid var(--line);
+  border-left: 6px solid var(--ink); border-radius: 10px;
+  padding: 8px 12px; cursor: pointer;
+}
+.ov-row:hover { border-color: rgba(0,0,0,0.3); border-left-width: 6px; }
+.ov-row .pos { font-weight: 800; color: var(--muted); font-size: 0.8rem; min-width: 22px; padding-top: 2px; }
+.ov-row .body { flex: 1; min-width: 0; }
+.ov-row .body b { font-size: 0.92rem; }
+.ov-row .say { font-size: 0.86rem; color: #374151; margin: 1px 0 0; }
+.ov-row .say.none { color: var(--muted); font-style: italic; }
+.ov-row .pill { flex-shrink: 0; margin-top: 2px; }
+.shot-card.flash { outline: 3px solid #fbbf24; outline-offset: 2px; transition: outline-color 1.2s; }
+.shot-card.flash-off { outline-color: transparent; }
+
 /* ---------- Characters page ---------- */
 .char-card .refs { display: grid; grid-template-columns: repeat(auto-fill, minmax(90px, 1fr)); gap: 6px; margin-top: 8px; }
 .char-card .refs .thumb { position: relative; border-radius: 8px; overflow: hidden; background: #000; }
