@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Checklists — Tuttle Kids Studio</title>
+<link rel="stylesheet" href="studio.css">
+</head>
+<body>
+<div id="gate"></div>
+
+<main id="app" class="wrap narrow" hidden>
+  <div class="page-head">
+    <h1>Shoot checklists</h1>
+    <button class="btn-mini primary" id="addBtn">+ New shoot</button>
+  </div>
+  <p class="small muted">Each shoot gets the standing sections (gear, paperwork…) plus a <b>Shots to capture</b> section generated from that episode's concept board. Check things off on your phone during the visit.</p>
+  <div class="grid" id="list"><p class="empty-state">Loading…</p></div>
+</main>
+
+<!-- New shoot modal -->
+<dialog class="modal" id="newModal">
+  <h2 style="margin:0 0 10px;">New shoot</h2>
+  <label class="field">Title</label>
+  <input class="input" id="nsTitle" placeholder="e.g. Kid 2 — home visit, week 3">
+  <label class="field">Date</label>
+  <input class="input" id="nsDate" type="date">
+  <label class="field">Kid / family</label>
+  <input class="input" id="nsFamily" placeholder="e.g. The Larsens">
+  <label class="field">Episode (pulls its live-action shots into the checklist)</label>
+  <select class="input" id="nsEpisode"><option value="">— none —</option></select>
+  <div class="row-split mt">
+    <button class="btn ghost" id="nsCancel">Cancel</button>
+    <button class="btn" id="nsCreate">Create checklist</button>
+  </div>
+</dialog>
+
+<script type="module">
+import { db, escapeHtml, toast, subtypeLabel } from "./studio-store.js";
+import { requireModerator } from "./studio-auth.js";
+
+await requireModerator();
+
+let SHOOTS = [], EPISODES = [];
+const list = document.getElementById("list");
+
+async function load() {
+  [SHOOTS, EPISODES] = await Promise.all([db.shoots(), db.episodes()]);
+  const sel = document.getElementById("nsEpisode");
+  sel.innerHTML = `<option value="">— none —</option>` +
+    EPISODES.map(e => `<option value="${e.id}">E${e.number} · ${escapeHtml(e.title)}</option>`).join("");
+  render();
+}
+
+function render() {
+  if (!SHOOTS.length) {
+    list.innerHTML = `<p class="empty-state">No shoots yet. Create one for your first home visit or the test shoot.</p>`;
+    return;
+  }
+  list.innerHTML = SHOOTS.map(sh => {
+    const items = sh.items || [];
+    const done = items.filter(i => i.done).length;
+    const sections = {};
+    items.forEach((it, idx) => (sections[it.section] ||= []).push({ ...it, idx }));
+    return `
+    <article class="card" data-id="${sh.id}">
+      <div class="row-split">
+        <div>
+          <b>${escapeHtml(sh.title)}</b>
+          <div class="small muted">${sh.shoot_date || "no date"}${sh.kid_family ? " · " + escapeHtml(sh.kid_family) : ""} · ${done}/${items.length} done</div>
+        </div>
+        <button class="btn-mini danger" data-del>✕</button>
+      </div>
+      ${Object.entries(sections).map(([sec, its]) => `
+        <div class="check-section-title">${escapeHtml(sec)}</div>
+        ${its.map(it => `
+          <label class="check-item ${it.done ? "done" : ""}">
+            <input type="checkbox" data-idx="${it.idx}" ${it.done ? "checked" : ""}>
+            <span>${escapeHtml(it.text)}</span>
+          </label>`).join("")}
+      `).join("")}
+      <div class="gen-row">
+        <input class="input" data-additem placeholder="Add an item…" style="max-width:320px; padding:6px 10px; font-size:0.85rem;">
+      </div>
+    </article>`;
+  }).join("");
+
+  list.querySelectorAll("article").forEach(card => {
+    const shoot = SHOOTS.find(s => s.id === card.dataset.id);
+
+    card.querySelectorAll("input[type=checkbox]").forEach(cb => {
+      cb.addEventListener("change", async () => {
+        shoot.items[cb.dataset.idx].done = cb.checked;
+        cb.closest(".check-item").classList.toggle("done", cb.checked);
+        try { await db.saveShoot(shoot.id, { items: shoot.items }); }
+        catch (e) { toast(e.message, true); }
+      });
+    });
+
+    card.querySelector("[data-del]").addEventListener("click", async () => {
+      if (!confirm(`Delete "${shoot.title}"?`)) return;
+      try { await db.deleteShoot(shoot.id); load(); }
+      catch (e) { toast(e.message, true); }
+    });
+
+    card.querySelector("[data-additem]").addEventListener("keydown", async e => {
+      if (e.key !== "Enter" || !e.target.value.trim()) return;
+      shoot.items.push({ section: "Extra", text: e.target.value.trim(), done: false });
+      try { await db.saveShoot(shoot.id, { items: shoot.items }); render(); }
+      catch (err) { toast(err.message, true); }
+    });
+  });
+}
+
+// ---- New shoot flow -------------------------------------------------
+const modal = document.getElementById("newModal");
+document.getElementById("addBtn").addEventListener("click", () => modal.showModal());
+document.getElementById("nsCancel").addEventListener("click", () => modal.close());
+
+document.getElementById("nsCreate").addEventListener("click", async () => {
+  const title = document.getElementById("nsTitle").value.trim();
+  if (!title) { toast("Give the shoot a title.", true); return; }
+  const episode_id = document.getElementById("nsEpisode").value || null;
+
+  try {
+    // Standing sections from settings.
+    const template = await db.setting("checklist_template", []);
+    const items = [];
+    for (const sec of template) {
+      for (const text of sec.items) items.push({ section: sec.section, text, done: false });
+    }
+    // Generated section: this episode's live-action shots.
+    if (episode_id) {
+      const shots = (await db.shots(episode_id)).filter(s => s.category === "live");
+      for (const s of shots) {
+        const label = `[${subtypeLabel(s.subtype)}] ${s.title || "untitled"}${s.description ? " — " + s.description : ""}`;
+        items.push({ section: "Shots to capture", text: label, done: false });
+      }
+      if (!shots.length) items.push({ section: "Shots to capture", text: "No live-action shots on that episode's board yet — concept it first, then recreate this checklist.", done: false });
+    }
+    await db.addShoot({
+      title,
+      shoot_date: document.getElementById("nsDate").value || null,
+      kid_family: document.getElementById("nsFamily").value.trim(),
+      episode_id, items,
+    });
+    modal.close();
+    load();
+  } catch (e) { toast(e.message, true); }
+});
+
+load();
+</script>
+</body>
+</html>

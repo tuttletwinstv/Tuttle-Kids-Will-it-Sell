@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Episodes — Tuttle Kids Studio</title>
+<link rel="stylesheet" href="studio.css">
+</head>
+<body>
+<div id="gate"></div>
+
+<main id="app" class="wrap" hidden>
+  <div class="page-head">
+    <h1>Episodes</h1>
+    <div class="row-split" style="gap:8px;">
+      <span class="sub" id="totalSpend"></span>
+      <button class="btn-mini" id="addEpBtn">+ Add episode</button>
+    </div>
+  </div>
+  <div class="grid cols" id="epList"><p class="empty-state">Loading…</p></div>
+</main>
+
+<script type="module">
+  import { db, escapeHtml, toast, fmtCost, EPISODE_STATUSES, EPISODE_STATUS_LABELS } from "./studio-store.js";
+  import { requireModerator } from "./studio-auth.js";
+
+  await requireModerator();
+
+  const epList = document.getElementById("epList");
+
+  async function load() {
+    try {
+      const [episodes, shots] = await Promise.all([db.episodes(), db.allShots()]);
+      if (!episodes.length) {
+        epList.innerHTML = `<p class="empty-state">No episodes yet — run <code>supabase-studio-setup.sql</code> to seed episodes 1–7, or add one.</p>`;
+        return;
+      }
+      const shotsByEp = {};
+      for (const s of shots) (shotsByEp[s.episode_id] ||= []).push(s);
+
+      epList.innerHTML = episodes.map(ep => {
+        const epShots = shotsByEp[ep.id] || [];
+        const concepted = epShots.filter(s => s.status !== "idea").length;
+        return `
+        <article class="card ep-card">
+          <div class="row">
+            <h2><span class="num">E${ep.number}</span>${escapeHtml(ep.title)}</h2>
+            <select class="tiny input" style="width:auto;" data-status="${ep.id}">
+              ${EPISODE_STATUSES.map(s =>
+                `<option value="${s}" ${s === ep.status ? "selected" : ""}>${EPISODE_STATUS_LABELS[s]}</option>`).join("")}
+            </select>
+          </div>
+          <p class="meta">${epShots.length} shot${epShots.length === 1 ? "" : "s"}${epShots.length ? ` · ${concepted} concepted` : ""}${ep.script_text ? " · script loaded" : " · no script yet"}</p>
+          ${ep.notes ? `<p class="notes">${escapeHtml(ep.notes)}</p>` : ""}
+          <div class="row" style="margin-top:auto;">
+            <a class="btn" href="episode.html?id=${ep.id}">Open concept board</a>
+          </div>
+        </article>`;
+      }).join("");
+
+      epList.querySelectorAll("select[data-status]").forEach(sel => {
+        sel.addEventListener("change", async () => {
+          try { await db.saveEpisode(sel.dataset.status, { status: sel.value }); toast("Status saved"); }
+          catch (e) { toast(e.message, true); }
+        });
+      });
+    } catch (e) {
+      epList.innerHTML = `<p class="empty-state">Couldn't load episodes: ${escapeHtml(e.message)}.<br>
+        If this is a fresh setup, run <code>supabase-studio-setup.sql</code> in the Supabase SQL editor first.</p>`;
+    }
+  }
+
+  document.getElementById("addEpBtn").addEventListener("click", async () => {
+    const title = prompt("Episode title?");
+    if (!title) return;
+    try {
+      const eps = await db.episodes();
+      const number = Math.max(0, ...eps.map(e => e.number)) + 1;
+      await db.addEpisode({ number, title });
+      load();
+    } catch (e) { toast(e.message, true); }
+  });
+
+  load();
+</script>
+</body>
+</html>

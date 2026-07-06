@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Ideas — Tuttle Kids Studio</title>
+<link rel="stylesheet" href="studio.css">
+</head>
+<body>
+<div id="gate"></div>
+
+<main id="app" class="wrap narrow" hidden>
+  <div class="page-head"><h1>Ideas parking lot</h1></div>
+  <section class="card">
+    <div class="row-split" style="gap:8px;">
+      <input class="input" id="ideaText" placeholder="Gag, blooper moment, Copernicus bit, episode beat… (Enter to save)" style="flex:1;">
+      <select class="input" id="ideaEp" style="max-width:200px;"><option value="">No episode</option></select>
+    </div>
+  </section>
+  <div class="grid mt" id="list"><p class="empty-state">Loading…</p></div>
+</main>
+
+<script type="module">
+import { db, escapeHtml, toast } from "./studio-store.js";
+import { requireModerator } from "./studio-auth.js";
+
+const email = await requireModerator();
+
+let IDEAS = [], EPISODES = [];
+const list = document.getElementById("list");
+const input = document.getElementById("ideaText");
+const epSel = document.getElementById("ideaEp");
+
+async function load() {
+  [IDEAS, EPISODES] = await Promise.all([db.ideas(), db.episodes()]);
+  epSel.innerHTML = `<option value="">No episode</option>` +
+    EPISODES.map(e => `<option value="${e.id}">E${e.number} · ${escapeHtml(e.title)}</option>`).join("");
+  render();
+}
+
+function render() {
+  if (!IDEAS.length) {
+    list.innerHTML = `<p class="empty-state">Empty lot. Type an idea above — anything from a Derek gag to a full episode beat.</p>`;
+    return;
+  }
+  const epName = Object.fromEntries(EPISODES.map(e => [e.id, `E${e.number}`]));
+  list.innerHTML = IDEAS.map(i => `
+    <article class="card row-split" data-id="${i.id}" style="${i.done ? "opacity:0.55;" : ""}">
+      <div>
+        <span style="${i.done ? "text-decoration:line-through;" : ""}">${escapeHtml(i.text)}</span>
+        <div class="small muted">${i.episode_id && epName[i.episode_id] ? `<span class="pill blue">${epName[i.episode_id]}</span> ` : ""}${i.created_by ? escapeHtml(i.created_by.split("@")[0]) : ""} · ${new Date(i.created_at).toLocaleDateString()}</div>
+      </div>
+      <div style="display:flex; gap:6px;">
+        <button class="btn-mini" data-done>${i.done ? "↩ Reopen" : "✓ Used"}</button>
+        <button class="btn-mini danger" data-del>✕</button>
+      </div>
+    </article>`).join("");
+
+  list.querySelectorAll("article").forEach(card => {
+    const idea = IDEAS.find(x => x.id === card.dataset.id);
+    card.querySelector("[data-done]").addEventListener("click", async () => {
+      try { await db.saveIdea(idea.id, { done: !idea.done }); load(); }
+      catch (e) { toast(e.message, true); }
+    });
+    card.querySelector("[data-del]").addEventListener("click", async () => {
+      try { await db.deleteIdea(idea.id); load(); }
+      catch (e) { toast(e.message, true); }
+    });
+  });
+}
+
+input.addEventListener("keydown", async e => {
+  if (e.key !== "Enter" || !input.value.trim()) return;
+  try {
+    await db.addIdea({ text: input.value.trim(), episode_id: epSel.value || null, created_by: email });
+    input.value = "";
+    load();
+  } catch (err) { toast(err.message, true); }
+});
+
+load();
+</script>
+</body>
+</html>

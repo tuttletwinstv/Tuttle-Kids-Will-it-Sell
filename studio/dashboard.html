@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Dashboard — Tuttle Kids Studio</title>
+<link rel="stylesheet" href="studio.css">
+</head>
+<body>
+<div id="gate"></div>
+
+<main id="app" class="wrap" hidden>
+  <div class="page-head"><h1>Dashboard</h1><span class="sub" id="today"></span></div>
+
+  <div class="countdown-strip" id="dates"></div>
+
+  <section class="card">
+    <h2 style="margin:0 0 12px; font-size:1.1rem;">Episode pipeline</h2>
+    <div class="pipeline" id="pipeline">Loading…</div>
+  </section>
+
+  <section class="card mt">
+    <div class="row-split">
+      <h2 style="margin:0; font-size:1.1rem;">Generation spend</h2>
+      <span class="spend" id="spendTotal"></span>
+    </div>
+    <div id="spendByEp" class="small muted mt"></div>
+  </section>
+</main>
+
+<script type="module">
+import { db, supabase, escapeHtml, EPISODE_STATUSES, EPISODE_STATUS_LABELS } from "./studio-store.js";
+import { requireModerator } from "./studio-auth.js";
+
+await requireModerator();
+
+const today = new Date();
+document.getElementById("today").textContent = today.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" });
+
+// Countdown strip.
+const dates = await db.setting("key_dates", []);
+document.getElementById("dates").innerHTML = dates.map(d => {
+  const days = Math.ceil((new Date(d.date + "T00:00:00") - today) / 86400000);
+  const label = days > 0 ? `${days}d` : days === 0 ? "today" : "done";
+  return `<div class="card date-card">
+    <div class="days ${days < 0 ? "past" : ""}">${label}</div>
+    <div class="lbl">${escapeHtml(d.label)}<br>${new Date(d.date + "T00:00:00").toLocaleDateString("en-US", { month: "short", day: "numeric" })}</div>
+  </div>`;
+}).join("");
+
+// Pipeline.
+const [episodes, shots] = await Promise.all([db.episodes(), db.allShots()]);
+const shotsByEp = {};
+for (const s of shots) (shotsByEp[s.episode_id] ||= []).push(s);
+
+document.getElementById("pipeline").innerHTML = episodes.map(ep => {
+  const stepIdx = EPISODE_STATUSES.indexOf(ep.status);
+  const epShots = shotsByEp[ep.id] || [];
+  return `<div class="ep-row">
+    <a class="name" href="episode.html?id=${ep.id}">E${ep.number} · ${escapeHtml(ep.title)}</a>
+    <div class="steps" title="${EPISODE_STATUS_LABELS[ep.status]}">
+      ${EPISODE_STATUSES.map((s, i) => `<div class="step ${i <= stepIdx ? "done" : ""}" title="${EPISODE_STATUS_LABELS[s]}"></div>`).join("")}
+    </div>
+    <span class="small muted" style="min-width:130px;">${EPISODE_STATUS_LABELS[ep.status]} · ${epShots.length} shots</span>
+  </div>`;
+}).join("");
+
+// Spend.
+const { data: gens } = await supabase.from("generations").select("shot_id, cost_usd, status");
+const total = (gens || []).reduce((s, g) => s + (Number(g.cost_usd) || 0), 0);
+document.getElementById("spendTotal").innerHTML = `<b>$${total.toFixed(2)}</b> · ${(gens || []).length} generations`;
+const shotToEp = Object.fromEntries(shots.map(s => [s.id, s.episode_id]));
+const byEp = {};
+for (const g of gens || []) {
+  const epId = shotToEp[g.shot_id];
+  if (epId) byEp[epId] = (byEp[epId] || 0) + (Number(g.cost_usd) || 0);
+}
+document.getElementById("spendByEp").innerHTML = episodes
+  .filter(ep => byEp[ep.id])
+  .map(ep => `E${ep.number} ${escapeHtml(ep.title)}: <b>$${byEp[ep.id].toFixed(2)}</b>`)
+  .join(" · ") || "No generations yet.";
+</script>
+</body>
+</html>
