@@ -20,6 +20,7 @@
         <button id="viewOverview">Overview</button>
       </span>
       <button class="btn-mini" id="reelBtn">▶ Play reel</button>
+      <button class="btn-mini gold" id="pitchBtn">📽 Pitch</button>
       <button class="btn-mini primary" id="addShotBtn">+ Add shot</button>
     </div>
   </div>
@@ -41,6 +42,20 @@
     </section>
   </div>
 </main>
+
+<!-- Pitch mode: fullscreen slide viewer -->
+<dialog class="pitch" id="pitchModal">
+  <div class="pitch-top">
+    <span id="pitchCounter">…</span>
+    <button class="pitch-close" id="pitchClose">✕ Exit&nbsp;&nbsp;<span style="opacity:.6;">esc</span></button>
+  </div>
+  <div class="pitch-stage">
+    <button class="pitch-nav" id="pitchPrev" title="Previous shot (←)">‹</button>
+    <div class="pitch-main" id="pitchMain"></div>
+    <button class="pitch-nav" id="pitchNext" title="Next shot (→)">›</button>
+  </div>
+  <div class="pitch-strip" id="pitchStrip"></div>
+</dialog>
 
 <!-- Play reel modal -->
 <dialog class="modal" id="reelModal" style="max-width:760px;">
@@ -538,6 +553,110 @@ document.getElementById("addShotBtn").addEventListener("click", async () => {
     renderShots();
   } catch (e) { toast(e.message, true); }
 });
+
+// ---------------------------------------------------------------
+// Pitch mode — fullscreen slide viewer for pitching the episode.
+// One slide per shot: latest generated video (preferred) or frame,
+// or a text card when nothing's generated yet. Filmstrip below
+// shows previous/upcoming shots; arrows + ←/→ keys navigate.
+// ---------------------------------------------------------------
+const pitchModal = document.getElementById("pitchModal");
+const pitchMain  = document.getElementById("pitchMain");
+const pitchStrip = document.getElementById("pitchStrip");
+let PITCH = [], pitchIdx = 0;
+
+async function pitchMediaFor(shot) {
+  const gens = (GENS[shot.id] || []).filter(g => g.status === "completed");
+  const pick = gens.find(g => g.kind === "video") || gens.find(g => g.kind === "frame");
+  if (!pick) return null;
+  let url = pick.output_url;
+  if (pick.output_path) {
+    try { url = await signedUrl(pick.output_path, 7200); } catch { /* fall back */ }
+  }
+  return url ? { url, kind: pick.kind } : null;
+}
+
+document.getElementById("pitchBtn").addEventListener("click", async () => {
+  if (!SHOTS.length) { toast("No shots to pitch yet.", true); return; }
+  const btn = document.getElementById("pitchBtn");
+  btn.disabled = true;
+  try {
+    PITCH = await Promise.all(SHOTS.map(async (s, i) => ({
+      shot: s, index: i, media: await pitchMediaFor(s),
+    })));
+  } finally { btn.disabled = false; }
+  pitchIdx = 0;
+  buildPitchStrip();
+  renderPitchSlide();
+  pitchModal.showModal();
+});
+
+function buildPitchStrip() {
+  pitchStrip.innerHTML = PITCH.map(({ shot, index, media }) => {
+    const c = SUBTYPE_COLORS[shot.subtype] || "#6b7280";
+    let inner;
+    if (media?.kind === "frame") inner = `<img src="${media.url}" alt="" loading="lazy">`;
+    else if (media?.kind === "video") inner = `<video src="${media.url}#t=0.5" muted preload="metadata" tabindex="-1"></video>`;
+    else inner = `<span class="tile-text">${escapeHtml((shot.title || "untitled").slice(0, 44))}</span>`;
+    return `<div class="pitch-tile" data-idx="${index}" style="border-bottom-color:${c}; ${media ? "" : `background:${c}22;`}">
+      ${inner}<span class="tile-num">${index + 1}</span>
+    </div>`;
+  }).join("");
+  pitchStrip.querySelectorAll(".pitch-tile").forEach(t =>
+    t.addEventListener("click", () => { pitchIdx = Number(t.dataset.idx); renderPitchSlide(); }));
+}
+
+function renderPitchSlide() {
+  const { shot, media } = PITCH[pitchIdx];
+  const c = SUBTYPE_COLORS[shot.subtype] || "#6b7280";
+  const say = shotBullet(shot);
+
+  document.getElementById("pitchCounter").innerHTML =
+    `<b>E${EP.number} · ${escapeHtml(EP.title)}</b> — shot ${pitchIdx + 1} of ${PITCH.length}`;
+
+  let mediaHtml;
+  if (media?.kind === "video") {
+    mediaHtml = `<video src="${media.url}" controls autoplay></video>`;
+  } else if (media?.kind === "frame") {
+    mediaHtml = `<img src="${media.url}" alt="${escapeHtml(shot.title)}">`;
+  } else {
+    mediaHtml = `<div class="pitch-text" style="border-top-color:${c};">
+      <h2>${escapeHtml(shot.title || "Untitled shot")}</h2>
+      <p>${escapeHtml(say || shot.description || "No script or description yet.")}</p>
+    </div>`;
+  }
+
+  pitchMain.innerHTML = `
+    ${mediaHtml}
+    <div class="pitch-caption">
+      <div class="line1">${escapeHtml(shot.title || "Untitled shot")}${typePill(shot.subtype)}</div>
+      ${media && say ? `<div class="line2">${escapeHtml(say)}</div>` : ""}
+    </div>`;
+
+  document.getElementById("pitchPrev").disabled = pitchIdx === 0;
+  document.getElementById("pitchNext").disabled = pitchIdx === PITCH.length - 1;
+
+  pitchStrip.querySelectorAll(".pitch-tile").forEach(t => {
+    const on = Number(t.dataset.idx) === pitchIdx;
+    t.classList.toggle("current", on);
+    if (on) t.scrollIntoView({ behavior: "smooth", inline: "center", block: "nearest" });
+  });
+}
+
+function pitchStep(delta) {
+  const next = pitchIdx + delta;
+  if (next < 0 || next >= PITCH.length) return;
+  pitchIdx = next;
+  renderPitchSlide();
+}
+document.getElementById("pitchPrev").addEventListener("click", () => pitchStep(-1));
+document.getElementById("pitchNext").addEventListener("click", () => pitchStep(1));
+document.getElementById("pitchClose").addEventListener("click", () => pitchModal.close());
+pitchModal.addEventListener("keydown", e => {
+  if (e.key === "ArrowRight" || e.key === " ") { e.preventDefault(); pitchStep(1); }
+  if (e.key === "ArrowLeft") { e.preventDefault(); pitchStep(-1); }
+});
+pitchModal.addEventListener("close", () => { pitchMain.innerHTML = ""; });
 
 // ---------------------------------------------------------------
 // Play reel — latest completed video per shot, in order.
