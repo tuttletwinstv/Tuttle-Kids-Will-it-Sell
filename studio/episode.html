@@ -1,0 +1,498 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Concept board — Tuttle Kids Studio</title>
+<link rel="stylesheet" href="studio.css">
+</head>
+<body>
+<div id="gate"></div>
+
+<main id="app" class="wrap" hidden>
+  <div class="page-head">
+    <h1 id="epTitle">…</h1>
+    <div class="row-split" style="gap:10px;">
+      <span class="spend" id="spend"></span>
+      <button class="btn-mini" id="reelBtn">▶ Play reel</button>
+      <button class="btn-mini primary" id="addShotBtn">+ Add shot</button>
+    </div>
+  </div>
+
+  <div class="board">
+    <!-- Left: script panel -->
+    <section class="card script-panel">
+      <label class="field" for="scriptText">Episode script / notes</label>
+      <textarea class="input" id="scriptText" placeholder="Paste the script (or rough episode notes) here…"></textarea>
+      <div class="gen-row">
+        <button class="btn" id="breakdownBtn">✨ Break down into shots</button>
+      </div>
+      <p class="small muted mt">Claude reads the script and drafts the shot list — every shot stays fully editable. Re-running adds shots to the end; it never deletes yours.</p>
+    </section>
+
+    <!-- Right: shot list -->
+    <section>
+      <div class="shot-list" id="shotList"><p class="empty-state">Loading…</p></div>
+    </section>
+  </div>
+</main>
+
+<!-- Play reel modal -->
+<dialog class="modal" id="reelModal" style="max-width:760px;">
+  <div class="row-split"><b id="reelLabel">Reel</b><button class="btn-mini" id="reelClose">✕ Close</button></div>
+  <video id="reelVideo" controls autoplay style="width:100%; border-radius:10px; margin-top:10px; background:#000;"></video>
+</dialog>
+
+<script type="module">
+import {
+  db, ai, supabase, escapeHtml, toast, fmtCost, signedUrl,
+  SHOT_TYPES, subtypeLabel, MODELS,
+  buildGenerationPlan, buildModelInput, pollPrediction, outputUrlOf, textOutputOf, costOf,
+} from "./studio-store.js";
+import { requireModerator } from "./studio-auth.js";
+
+const email = await requireModerator();
+
+const epId = new URLSearchParams(location.search).get("id");
+if (!epId) location.href = "index.html";
+
+let EP, SHOTS = [], CHARACTERS = [], TEMPLATES = {}, GENS = {}; // GENS: shotId -> rows
+
+const shotList  = document.getElementById("shotList");
+const scriptEl  = document.getElementById("scriptText");
+const spendEl   = document.getElementById("spend");
+
+// ---------------------------------------------------------------
+// Load everything.
+// ---------------------------------------------------------------
+async function loadAll() {
+  [EP, SHOTS, CHARACTERS, TEMPLATES] = await Promise.all([
+    db.episode(epId), db.shots(epId), db.characters(), db.setting("prompt_templates", {}),
+  ]);
+  document.getElementById("epTitle").textContent = `E${EP.number} · ${EP.title}`;
+  document.title = `E${EP.number} ${EP.title} — Tuttle Kids Studio`;
+  scriptEl.value = EP.script_text || "";
+  const gens = await db.generationsForEpisode(epId);
+  GENS = {};
+  for (const g of gens) (GENS[g.shot_id] ||= []).push(g);
+  renderShots();
+  renderSpend();
+  resumePendingPolls();
+}
+
+function renderSpend() {
+  const all = Object.values(GENS).flat();
+  const total = all.reduce((sum, g) => sum + (Number(g.cost_usd) || 0), 0);
+  spendEl.innerHTML = all.length
+    ? `${all.length} generation${all.length === 1 ? "" : "s"} · <b>$${total.toFixed(2)}</b> spent`
+    : "";
+}
+
+// ---------------------------------------------------------------
+// Script autosave.
+// ---------------------------------------------------------------
+let scriptTimer;
+scriptEl.addEventListener("input", () => {
+  clearTimeout(scriptTimer);
+  scriptTimer = setTimeout(async () => {
+    try { await db.saveEpisode(epId, { script_text: scriptEl.value }); }
+    catch (e) { toast(e.message, true); }
+  }, 800);
+});
+
+// ---------------------------------------------------------------
+// AI breakdown: script -> draft shot list.
+// ---------------------------------------------------------------
+const breakdownBtn = document.getElementById("breakdownBtn");
+breakdownBtn.addEventListener("click", async () => {
+  const script = scriptEl.value.trim();
+  if (!script) { toast("Paste a script first.", true); return; }
+  breakdownBtn.disabled = true;
+  breakdownBtn.textContent = "Thinking…";
+  try {
+    const subtypeHelp = Object.entries(SHOT_TYPES).map(([cat, def]) =>
+      `${cat}: ${Object.entries(def.subtypes).map(([k, v]) => `${k} (${v})`).join(", ")}`).join("\n");
+    const charNames = CHARACTERS.filter(c => c.kind !== "persona").map(c => c.name).join(", ");
+    const instructions =
+`You are a TV producer breaking an episode script into a shot-by-shot concept list for "Tuttle Kids: Will It Sell?" — a hybrid show mixing 2D animation (the Tuttle Twins characters host) with unscripted real-life footage of kid entrepreneurs.
+
+Break the script below into 8-25 shots/beats, in order. Return ONLY a JSON array, no markdown fences, no commentary. Each element:
+{
+ "title": "short label",
+ "description": "what we see, one or two sentences, concrete and visual",
+ "category": "live" or "animated",
+ "subtype": one of the keys below matching the category,
+ "script_text": the dialogue or VO for this shot ("" if none),
+ "character_names": array drawn ONLY from [${charNames}] ([] if none),
+ "duration_secs": integer 4-12, your estimate of the previz clip length
+}
+
+Subtype keys:
+${subtypeHelp}
+
+Guidance: narrator/host/animated-character scenes are "animated" (Copernicus narrates from his soundboard). Audition submission videos are kid_dtc. Kid-filmed home footage is kid_dtc/kid_story/kid_broll. Professional crew footage is crew_*. Parent phone footage is adult_*.
+
+SCRIPT:
+${script}`;
+
+    const created = await ai.create(MODELS.llm.id, { prompt: instructions });
+    breakdownBtn.textContent = "Breaking down…";
+    const done = await pollPrediction(created.id, null, { intervalMs: 2500 });
+    let text = textOutputOf(done).trim()
+      .replace(/^```(json)?/m, "").replace(/```$/m, "").trim();
+    const start = text.indexOf("["), end = text.lastIndexOf("]");
+    if (start === -1 || end === -1) throw new Error("Couldn't parse the AI's shot list — try again.");
+    const draft = JSON.parse(text.slice(start, end + 1));
+
+    const nameToId = Object.fromEntries(CHARACTERS.map(c => [c.name.toLowerCase(), c.id]));
+    let pos = SHOTS.length ? Math.max(...SHOTS.map(s => s.position)) + 1 : 0;
+    for (const d of draft) {
+      const category = d.category === "animated" ? "animated" : "live";
+      const valid = SHOT_TYPES[category].subtypes;
+      await db.addShot({
+        episode_id: epId,
+        position: pos++,
+        title: String(d.title || "").slice(0, 120),
+        description: String(d.description || ""),
+        category,
+        subtype: valid[d.subtype] ? d.subtype : Object.keys(valid)[0],
+        script_text: String(d.script_text || ""),
+        character_ids: (d.character_names || [])
+          .map(n => nameToId[String(n).toLowerCase()]).filter(Boolean),
+        duration_secs: Math.min(Math.max(parseInt(d.duration_secs) || 6, 4), 12),
+      });
+    }
+    toast(`Added ${draft.length} shots`);
+    await loadAll();
+  } catch (e) {
+    toast(e.message, true);
+  } finally {
+    breakdownBtn.disabled = false;
+    breakdownBtn.textContent = "✨ Break down into shots";
+  }
+});
+
+// ---------------------------------------------------------------
+// Shot cards.
+// ---------------------------------------------------------------
+function shotCardHtml(shot, idx) {
+  const cat = SHOT_TYPES[shot.category] || SHOT_TYPES.live;
+  const durOpts = [4,5,6,7,8,9,10,11,12].map(d =>
+    `<option value="${d}" ${d === shot.duration_secs ? "selected" : ""}>${d}s</option>`).join("");
+  const chips = CHARACTERS.filter(c => c.kind !== "persona").map(c =>
+    `<button class="chip ${shot.character_ids?.includes(c.id) ? "on" : ""}" data-char="${c.id}">${escapeHtml(c.name)}</button>`).join("");
+  const gens = GENS[shot.id] || [];
+
+  return `
+  <article class="card shot-card" data-shot="${shot.id}">
+    <div class="head">
+      <span class="pos">${idx + 1}</span>
+      <input class="title" data-f="title" value="${escapeHtml(shot.title)}" placeholder="Shot title…">
+      <span class="pill ${shot.category === "animated" ? "violet" : "blue"}">${subtypeLabel(shot.subtype)}</span>
+      <button class="btn-mini" data-act="up" title="Move up">↑</button>
+      <button class="btn-mini" data-act="down" title="Move down">↓</button>
+      <button class="btn-mini danger" data-act="del" title="Delete shot">✕</button>
+    </div>
+    <div class="controls">
+      <select class="tiny" data-f="category">
+        ${Object.entries(SHOT_TYPES).map(([k, v]) =>
+          `<option value="${k}" ${k === shot.category ? "selected" : ""}>${v.label}</option>`).join("")}
+      </select>
+      <select class="tiny" data-f="subtype">
+        ${Object.entries(cat.subtypes).map(([k, v]) =>
+          `<option value="${k}" ${k === shot.subtype ? "selected" : ""}>${v}</option>`).join("")}
+      </select>
+      <select class="tiny" data-f="duration_secs" title="Previz clip length">${durOpts}</select>
+      <select class="tiny" data-f="status">
+        ${["idea","concepted","approved","shot"].map(s =>
+          `<option value="${s}" ${s === shot.status ? "selected" : ""}>${s}</option>`).join("")}
+      </select>
+    </div>
+    <textarea class="input desc" data-f="description" rows="2" placeholder="What do we see? (feeds the AI prompt)">${escapeHtml(shot.description)}</textarea>
+    <textarea class="input script mt" data-f="script_text" rows="2" placeholder="Script / dialogue / VO for this shot (optional)">${escapeHtml(shot.script_text)}</textarea>
+    <div class="char-chips mt">${chips}</div>
+    <details class="prompt-box">
+      <summary>Prompt ${shot.prompt_override ? "· customized" : "· auto"}</summary>
+      <textarea class="input mt" data-f="prompt_override" rows="3" placeholder="Leave blank to auto-build from the ${escapeHtml(subtypeLabel(shot.subtype))} template + characters + script.">${escapeHtml(shot.prompt_override || "")}</textarea>
+      <button class="btn-mini mt" data-act="preview-prompt">Preview auto prompt</button>
+    </details>
+    <div class="gen-row">
+      <button class="btn-mini gold" data-act="frame">🖼 Frame <span class="muted">${fmtCost(MODELS.frame.est)}</span></button>
+      <select class="tiny" data-f="_vmodel">
+        <option value="mini">Seedance Mini · ${fmtCost(MODELS.mini.est)}</option>
+        <option value="flagship">Seedance 2.0 · $${MODELS.flagship.est.toFixed(2)}</option>
+      </select>
+      <button class="btn-mini primary" data-act="video">🎬 Generate video</button>
+    </div>
+    <div class="gallery" data-gallery>${gens.map(genThumbHtml).join("")}</div>
+  </article>`;
+}
+
+function genThumbHtml(g) {
+  if (g.status === "completed" && (g._url || g.output_url)) {
+    const url = g._url || g.output_url;
+    const media = g.kind === "video"
+      ? `<video src="${url}" controls preload="metadata"></video>`
+      : `<img src="${url}" alt="generated frame" loading="lazy">`;
+    return `<div class="thumb" data-gen="${g.id}">
+      ${media}
+      <span class="tag">${g.kind === "video" ? (g.model.includes("mini") ? "mini" : "2.0") : "frame"}${g.cost_usd ? ` · $${Number(g.cost_usd).toFixed(2)}` : ""}</span>
+      <button class="del" data-delgen="${g.id}" title="Remove">✕</button>
+    </div>`;
+  }
+  if (g.status === "failed") {
+    return `<div class="thumb pending" data-gen="${g.id}" title="${escapeHtml(g.error || "")}">
+      failed ✕ <button class="del" data-delgen="${g.id}">✕</button></div>`;
+  }
+  return `<div class="thumb pending" data-gen="${g.id}">⏳ generating…</div>`;
+}
+
+async function hydrateGenUrls(gens) {
+  await Promise.all(gens.map(async g => {
+    if (g.status === "completed" && g.output_path && !g._url) {
+      try { g._url = await signedUrl(g.output_path, 7200); } catch { g._url = g.output_url; }
+    }
+  }));
+}
+
+async function renderShots() {
+  SHOTS.sort((a, b) => a.position - b.position);
+  await hydrateGenUrls(Object.values(GENS).flat());
+  if (!SHOTS.length) {
+    shotList.innerHTML = `<p class="empty-state">No shots yet.<br>Paste the script on the left and hit <b>Break down into shots</b>, or add shots by hand.</p>`;
+    return;
+  }
+  shotList.innerHTML = SHOTS.map((s, i) => shotCardHtml(s, i)).join("");
+  wireShotCards();
+}
+
+function wireShotCards() {
+  shotList.querySelectorAll(".shot-card").forEach(card => {
+    const shotId = card.dataset.shot;
+    const shot = SHOTS.find(s => s.id === shotId);
+
+    // Field autosave (debounced per-field).
+    card.querySelectorAll("[data-f]").forEach(el => {
+      if (el.dataset.f === "_vmodel") return;
+      const save = async () => {
+        let val = el.value;
+        if (el.dataset.f === "duration_secs") val = parseInt(val);
+        if (el.dataset.f === "prompt_override" && !val.trim()) val = null;
+        shot[el.dataset.f] = val;
+        try {
+          await db.saveShot(shotId, { [el.dataset.f]: val });
+          if (el.dataset.f === "category") { // reset subtype to a valid one
+            const first = Object.keys(SHOT_TYPES[val].subtypes)[0];
+            shot.subtype = first;
+            await db.saveShot(shotId, { subtype: first });
+            renderShots();
+          }
+          if (el.dataset.f === "subtype") renderShots();
+        } catch (e) { toast(e.message, true); }
+      };
+      if (el.tagName === "SELECT") el.addEventListener("change", save);
+      else {
+        let t; el.addEventListener("input", () => { clearTimeout(t); t = setTimeout(save, 700); });
+      }
+    });
+
+    // Character chips.
+    card.querySelectorAll("[data-char]").forEach(chip => {
+      chip.addEventListener("click", async () => {
+        const id = chip.dataset.char;
+        const ids = new Set(shot.character_ids || []);
+        ids.has(id) ? ids.delete(id) : ids.add(id);
+        shot.character_ids = [...ids];
+        chip.classList.toggle("on");
+        try { await db.saveShot(shotId, { character_ids: shot.character_ids }); }
+        catch (e) { toast(e.message, true); }
+      });
+    });
+
+    // Actions.
+    card.querySelectorAll("[data-act]").forEach(btn => {
+      btn.addEventListener("click", () => handleAction(btn.dataset.act, shot, card, btn));
+    });
+    card.querySelectorAll("[data-delgen]").forEach(btn => {
+      btn.addEventListener("click", async () => {
+        if (!confirm("Remove this generation from the board?")) return;
+        try {
+          await db.deleteGeneration(btn.dataset.delgen);
+          GENS[shotId] = (GENS[shotId] || []).filter(g => g.id !== btn.dataset.delgen);
+          renderShots(); renderSpend();
+        } catch (e) { toast(e.message, true); }
+      });
+    });
+  });
+}
+
+async function handleAction(act, shot, card, btn) {
+  try {
+    if (act === "del") {
+      if (!confirm(`Delete shot "${shot.title || "untitled"}"?`)) return;
+      await db.deleteShot(shot.id);
+      SHOTS = SHOTS.filter(s => s.id !== shot.id);
+      renderShots();
+    }
+    if (act === "up" || act === "down") {
+      const idx = SHOTS.indexOf(shot);
+      const swap = SHOTS[act === "up" ? idx - 1 : idx + 1];
+      if (!swap) return;
+      [shot.position, swap.position] = [swap.position, shot.position];
+      await Promise.all([
+        db.saveShot(shot.id, { position: shot.position }),
+        db.saveShot(swap.id, { position: swap.position }),
+      ]);
+      renderShots();
+    }
+    if (act === "preview-prompt") {
+      btn.disabled = true;
+      const plan = await buildGenerationPlan(shot, CHARACTERS, TEMPLATES);
+      btn.disabled = false;
+      const ta = card.querySelector('[data-f="prompt_override"]');
+      if (!ta.value.trim()) ta.value = plan.prompt;
+      else alert(`Auto prompt would be:\n\n${plan.prompt}`);
+    }
+    if (act === "frame") await generate(shot, card, "frame");
+    if (act === "video") {
+      const key = card.querySelector('[data-f="_vmodel"]').value; // 'mini' | 'flagship'
+      await generate(shot, card, key);
+    }
+  } catch (e) { toast(e.message, true); }
+}
+
+// ---------------------------------------------------------------
+// Generation.
+// ---------------------------------------------------------------
+async function generate(shot, card, modelKey) {
+  const model = MODELS[modelKey];
+  if (model.confirm && !confirm(`Seedance 2.0 costs ~$${model.est.toFixed(2)} per run. Generate this shot on flagship quality?`)) return;
+
+  const buttons = card.querySelectorAll("[data-act='frame'],[data-act='video']");
+  buttons.forEach(b => b.disabled = true);
+  let gen;
+  try {
+    const plan = await buildGenerationPlan(shot, CHARACTERS, TEMPLATES, { forFrame: model.kind === "frame" });
+    const promptText = (shot.prompt_override || "").trim() || plan.prompt;
+    const input = buildModelInput(modelKey, promptText, plan, shot);
+
+    gen = await db.addGeneration({
+      shot_id: shot.id, kind: model.kind, model: model.id,
+      prompt: promptText, params: input, status: "pending", created_by: email,
+    });
+    (GENS[shot.id] ||= []).unshift(gen);
+    renderShots(); renderSpend();
+
+    const created = await ai.create(model.id, input);
+    await db.saveGeneration(gen.id, { prediction_id: created.id, status: "running" });
+    gen.prediction_id = created.id; gen.status = "running";
+
+    await finishGeneration(gen, model);
+  } catch (e) {
+    if (gen) {
+      await db.saveGeneration(gen.id, { status: "failed", error: e.message }).catch(() => {});
+      gen.status = "failed"; gen.error = e.message;
+      renderShots();
+    }
+    toast(e.message, true);
+  } finally {
+    buttons.forEach(b => b.disabled = false);
+  }
+}
+
+// Poll a running generation to completion, persist output into our own
+// bucket (gateway URLs expire), and update the row + UI.
+async function finishGeneration(gen, model) {
+  const done = await pollPrediction(gen.prediction_id, null, { intervalMs: model.kind === "frame" ? 2500 : 5000 });
+  const url = outputUrlOf(done);
+  if (!url) throw new Error("Generation finished but returned no output URL.");
+
+  const cost = costOf(done, model.est);
+
+  // Ask the function to copy the output into studio-assets so it outlives
+  // the gateway's signed URL. Non-fatal if it fails — keep the raw URL.
+  let output_path = null;
+  try {
+    const ext = model.kind === "video" ? "mp4" : "jpg";
+    const saved = await ai.persist(url, `generations/${gen.id}.${ext}`);
+    output_path = saved.path;
+  } catch { /* keep output_url fallback */ }
+
+  await db.saveGeneration(gen.id, { status: "completed", output_url: url, output_path, cost_usd: cost });
+  Object.assign(gen, { status: "completed", output_url: url, output_path, cost_usd: cost, _url: null });
+  renderShots(); renderSpend();
+  toast(`${model.short} done · $${cost.toFixed(2)}`);
+}
+
+// Resume polling for generations that were still running when the page
+// was last closed.
+function resumePendingPolls() {
+  for (const gens of Object.values(GENS)) {
+    for (const g of gens) {
+      if ((g.status === "pending" || g.status === "running") && g.prediction_id) {
+        const model = Object.values(MODELS).find(m => m.id === g.model) || MODELS.mini;
+        finishGeneration(g, model).catch(async e => {
+          await db.saveGeneration(g.id, { status: "failed", error: e.message }).catch(() => {});
+          g.status = "failed"; g.error = e.message;
+          renderShots();
+        });
+      }
+    }
+  }
+}
+
+// ---------------------------------------------------------------
+// Add shot by hand.
+// ---------------------------------------------------------------
+document.getElementById("addShotBtn").addEventListener("click", async () => {
+  try {
+    const pos = SHOTS.length ? Math.max(...SHOTS.map(s => s.position)) + 1 : 0;
+    const shot = await db.addShot({ episode_id: epId, position: pos, title: "New shot" });
+    SHOTS.push(shot);
+    renderShots();
+  } catch (e) { toast(e.message, true); }
+});
+
+// ---------------------------------------------------------------
+// Play reel — latest completed video per shot, in order.
+// ---------------------------------------------------------------
+const reelModal = document.getElementById("reelModal");
+const reelVideo = document.getElementById("reelVideo");
+const reelLabel = document.getElementById("reelLabel");
+let reelQueue = [], reelIdx = 0;
+
+document.getElementById("reelBtn").addEventListener("click", async () => {
+  reelQueue = [];
+  for (const s of SHOTS) {
+    const g = (GENS[s.id] || []).find(g => g.kind === "video" && g.status === "completed");
+    if (g) {
+      const url = g.output_path ? await signedUrl(g.output_path, 7200) : g.output_url;
+      if (url) reelQueue.push({ url, title: s.title || "untitled" });
+    }
+  }
+  if (!reelQueue.length) { toast("No completed video shots yet.", true); return; }
+  reelIdx = 0;
+  playReel();
+  reelModal.showModal();
+});
+function playReel() {
+  const item = reelQueue[reelIdx];
+  reelLabel.textContent = `Reel · ${reelIdx + 1}/${reelQueue.length} · ${item.title}`;
+  reelVideo.src = item.url;
+  reelVideo.play().catch(() => {});
+}
+reelVideo.addEventListener("ended", () => {
+  if (++reelIdx < reelQueue.length) playReel();
+  else reelModal.close();
+});
+document.getElementById("reelClose").addEventListener("click", () => { reelVideo.pause(); reelModal.close(); });
+
+// Go.
+try { await loadAll(); }
+catch (e) {
+  shotList.innerHTML = `<p class="empty-state">Couldn't load: ${escapeHtml(e.message)}</p>`;
+}
+</script>
+</body>
+</html>

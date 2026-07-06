@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Characters — Tuttle Kids Studio</title>
+<link rel="stylesheet" href="studio.css">
+</head>
+<body>
+<div id="gate"></div>
+
+<main id="app" class="wrap" hidden>
+  <div class="page-head">
+    <h1>Characters</h1>
+    <button class="btn-mini primary" id="addBtn">+ Add</button>
+  </div>
+
+  <div class="tabs" id="tabs">
+    <button data-tab="animated" class="on">Animated cast</button>
+    <button data-tab="real">Real people</button>
+    <button data-tab="persona">Practice personas</button>
+    <button data-tab="style">Animation style</button>
+  </div>
+
+  <p class="small muted" id="tabHelp"></p>
+  <div class="grid cols" id="list"><p class="empty-state">Loading…</p></div>
+</main>
+
+<script type="module">
+import { db, escapeHtml, toast, uploadAsset, signedUrl, removeAsset } from "./studio-store.js";
+import { requireModerator } from "./studio-auth.js";
+
+await requireModerator();
+
+const HELP = {
+  animated: "Upload reference images of each animated character — they attach automatically when the character is on a shot. Aim for 1–2 clean, front-facing stills per character.",
+  real: "The coaches, crew, and (after July 17) the selected kids. Reference photos let you previz live-action shots with the actual people.",
+  persona: "AI kid entrepreneurs for coach practice phone calls (done outside this app, e.g. over Zoom). Copy a persona's briefing prompt into whatever voice tool you're using. Replace these placeholders with the real kids after selection.",
+  style: "The global animation-style reference set. Short clips of the Tuttle Twins animation style (2–15s total, ≤720p for Seedance) attach automatically to every ANIMATED shot's video generation; style images are used for frames.",
+};
+
+let TAB = "animated", CHARACTERS = [];
+const list = document.getElementById("list");
+const tabHelp = document.getElementById("tabHelp");
+
+document.getElementById("tabs").addEventListener("click", e => {
+  const b = e.target.closest("[data-tab]");
+  if (!b) return;
+  TAB = b.dataset.tab;
+  document.querySelectorAll("#tabs button").forEach(x => x.classList.toggle("on", x === b));
+  render();
+});
+
+async function load() {
+  CHARACTERS = await db.characters();
+  render();
+}
+
+async function refsHtml(owner) {
+  const assets = await db.assets(owner);
+  const thumbs = await Promise.all(assets.map(async a => {
+    let url = "";
+    try { url = await signedUrl(a.storage_path, 3600); } catch {}
+    const media = a.media_type === "video"
+      ? `<video src="${url}" muted loop onmouseover="this.play()" onmouseout="this.pause()"></video>`
+      : `<img src="${url}" loading="lazy" alt="">`;
+    return `<div class="thumb">${media}<button class="del" data-delasset="${a.id}">✕</button></div>`;
+  }));
+  return thumbs.join("");
+}
+
+function wireCard(card, character, owner) {
+  // Uploads.
+  const fileInput = card.querySelector("input[type=file]");
+  fileInput?.addEventListener("change", async () => {
+    const files = [...fileInput.files];
+    if (!files.length) return;
+    const btnLabel = card.querySelector(".upl-label");
+    btnLabel.textContent = "Uploading…";
+    try {
+      for (const f of files) await uploadAsset(owner, f);
+      toast(`Uploaded ${files.length} file${files.length > 1 ? "s" : ""}`);
+      render();
+    } catch (e) { toast(e.message, true); btnLabel.textContent = "Upload refs"; }
+  });
+
+  // Delete asset buttons (delegated after refs load).
+  card.addEventListener("click", async e => {
+    const del = e.target.closest("[data-delasset]");
+    if (del) {
+      try {
+        const assets = await db.assets(owner);
+        const asset = assets.find(a => a.id === del.dataset.delasset);
+        if (asset && confirm("Remove this reference?")) { await removeAsset(asset); render(); }
+      } catch (err) { toast(err.message, true); }
+    }
+  });
+
+  if (!character) return;
+
+  // Field autosave.
+  card.querySelectorAll("[data-f]").forEach(el => {
+    let t;
+    el.addEventListener("input", () => {
+      clearTimeout(t);
+      t = setTimeout(async () => {
+        try { await db.saveCharacter(character.id, { [el.dataset.f]: el.value }); }
+        catch (e) { toast(e.message, true); }
+      }, 700);
+    });
+  });
+
+  card.querySelector("[data-delchar]")?.addEventListener("click", async () => {
+    if (!confirm(`Delete ${character.name}? Their reference uploads stay in storage.`)) return;
+    try { await db.deleteCharacter(character.id); load(); }
+    catch (e) { toast(e.message, true); }
+  });
+
+  card.querySelector("[data-copybrief]")?.addEventListener("click", async btn => {
+    const text = card.querySelector('[data-f="briefing_prompt"]').value;
+    await navigator.clipboard.writeText(text);
+    toast("Briefing prompt copied — paste it into your voice/chat tool.");
+  });
+}
+
+async function render() {
+  tabHelp.textContent = HELP[TAB];
+  document.getElementById("addBtn").style.visibility = TAB === "style" ? "hidden" : "visible";
+
+  if (TAB === "style") {
+    list.innerHTML = `
+      <article class="card char-card" style="grid-column: 1 / -1;">
+        <div class="row-split">
+          <h2 style="margin:0; font-size:1.1rem;">Animation style reference set</h2>
+          <label class="btn-mini primary" style="cursor:pointer;">
+            <span class="upl-label">Upload refs</span>
+            <input type="file" accept="image/*,video/mp4,video/quicktime,video/webm" multiple hidden>
+          </label>
+        </div>
+        <p class="small muted">Video clips: 2–15 seconds combined, ≤720p, MP4/MOV. These are sent as @Video references on every animated shot.</p>
+        <div class="refs" data-refs>Loading refs…</div>
+      </article>`;
+    const card = list.firstElementChild;
+    wireCard(card, null, "style");
+    card.querySelector("[data-refs]").innerHTML = (await refsHtml("style")) || `<p class="muted small">No style references yet.</p>`;
+    return;
+  }
+
+  const rows = CHARACTERS.filter(c => c.kind === TAB);
+  if (!rows.length) {
+    list.innerHTML = `<p class="empty-state">Nothing here yet — hit <b>+ Add</b>.</p>`;
+    return;
+  }
+
+  list.innerHTML = rows.map(c => `
+    <article class="card char-card" data-id="${c.id}">
+      <div class="row-split">
+        <input class="input" data-f="name" value="${escapeHtml(c.name)}" style="font-weight:700; max-width:230px;">
+        <button class="btn-mini danger" data-delchar>✕</button>
+      </div>
+      <label class="field">Description ${TAB !== "persona" ? "(feeds AI prompts)" : ""}</label>
+      <textarea class="input" data-f="description" rows="3">${escapeHtml(c.description)}</textarea>
+      ${TAB === "persona" ? `
+        <label class="field">Age</label>
+        <input class="input" data-f="persona_age" value="${escapeHtml(c.persona_age || "")}">
+        <label class="field">Business</label>
+        <input class="input" data-f="persona_business" value="${escapeHtml(c.persona_business || "")}">
+        <label class="field">Personality & coaching notes</label>
+        <textarea class="input" data-f="persona_personality" rows="3">${escapeHtml(c.persona_personality || "")}</textarea>
+        <label class="field">Briefing prompt (paste into your voice/chat tool)</label>
+        <textarea class="input" data-f="briefing_prompt" rows="5">${escapeHtml(c.briefing_prompt || "")}</textarea>
+        <button class="btn mt" data-copybrief>📋 Copy briefing prompt</button>
+      ` : `
+        <div class="row-split mt">
+          <span class="small muted">Reference images / clips</span>
+          <label class="btn-mini primary" style="cursor:pointer;">
+            <span class="upl-label">Upload refs</span>
+            <input type="file" accept="image/*,video/mp4,video/quicktime,video/webm" multiple hidden>
+          </label>
+        </div>
+        <div class="refs" data-refs>Loading…</div>
+      `}
+    </article>`).join("");
+
+  for (const c of rows) {
+    const card = list.querySelector(`[data-id="${c.id}"]`);
+    wireCard(card, c, `character:${c.id}`);
+    const refsEl = card.querySelector("[data-refs]");
+    if (refsEl) refsEl.innerHTML = (await refsHtml(`character:${c.id}`)) || `<p class="muted small">No refs yet.</p>`;
+  }
+}
+
+document.getElementById("addBtn").addEventListener("click", async () => {
+  const name = prompt(TAB === "persona" ? "Persona name (e.g. the kid's first name)?" : "Name?");
+  if (!name) return;
+  try {
+    await db.addCharacter({ name, kind: TAB });
+    load();
+  } catch (e) { toast(e.message, true); }
+});
+
+load();
+</script>
+</body>
+</html>

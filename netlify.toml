@@ -1,0 +1,7 @@
+# Static site served from the repo root (same as before — netlify.toml is
+# new but changes nothing about the public casting pages). The functions
+# dir exists for /studio/'s AI proxy, which needs the Angel AI Labs key
+# kept server-side.
+[build]
+  publish = "."
+  functions = "netlify/functions"
