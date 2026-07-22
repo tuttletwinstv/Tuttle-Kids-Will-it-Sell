@@ -126,13 +126,13 @@
   <script>
     window.plausible=window.plausible||function(){(plausible.q=plausible.q||[]).push(arguments)},plausible.init=plausible.init||function(i){plausible.o=i||{}};
     plausible.init({ outboundLinks: true, fileDownloads: true });
-    plausible('Apply Start')
+    plausible('Applications Closed Viewed')
   </script>
 </head>
 <body>
 
   <div class="deadline">
-    <div class="wrap">Applications close <b>July 13</b>.</div>
+    <div class="wrap"><b>Applications are now closed.</b></div>
   </div>
 
   <nav class="appbar">
@@ -143,203 +143,30 @@
       </a>
       <div class="menu">
         <a href="index.html">Overview</a>
-        <a class="current" href="apply.html">Apply</a>
+        <a class="current" href="apply.html">Notify me</a>
         <a href="success.html">Success tips</a>
         <a href="faqs.html">FAQ</a>
       </div>
     </div>
   </nav>
 
-  <!-- Intro -->
+  <!-- Applications closed -->
   <section>
     <div class="wrap">
-      <p class="eyebrow">Submission</p>
-      <h1>Apply</h1>
-      <div class="note">Before you submit, check out <a href="success.html"><b>How to be successful</b></a> for tips that make a real difference.</div>
-    </div>
-  </section>
+      <p class="eyebrow">Casting call</p>
+      <h1>Applications are closed</h1>
+      <p class="lead">Thank you to everyone who applied! Submissions for the Tuttle Twins Cartoon Entrepreneur Series are now closed.</p>
+      <p class="muted">Want to hear about it if we run this again? Leave your email and we&rsquo;ll let you know &mdash; that&rsquo;s the only thing we&rsquo;ll use it for.</p>
 
-  <!-- Form -->
-  <section>
-    <div class="wrap">
-      <form id="applyForm">
-
-        <!-- About the kid(s) -->
-        <p class="subhead">About the applicant(s)</p>
-
+      <form name="notify-me" method="POST" data-netlify="true" netlify-honeypot="bot-field" id="notifyForm" style="margin-top:18px;max-width:420px">
+        <input type="hidden" name="form-name" value="notify-me">
+        <p hidden><label>Don&rsquo;t fill this out: <input name="bot-field"></label></p>
         <div class="field">
-          <label for="applicantNames">Full name(s) <span class="req">*</span></label>
-          <span class="hint">If applying as a family or group, list all kids&rsquo; names, separated by commas.</span>
-          <input class="input" id="applicantNames" name="applicantNames" type="text" placeholder="e.g. Ethan Tuttle, Emily Tuttle" required>
+          <label for="notifyEmail">Email</label>
+          <input class="input" id="notifyEmail" name="email" type="email" placeholder="you@email.com" required>
         </div>
-
-        <div class="field">
-          <label for="applicantAges">Age(s) <span class="req">*</span></label>
-          <span class="hint">If listing multiple, use the same order as names, separated by commas.</span>
-          <input class="input" id="applicantAges" name="applicantAges" type="text" inputmode="numeric" placeholder="e.g. 11, 9" required>
-        </div>
-
-        <div class="field">
-          <label for="city">City of residence in Utah <span class="req">*</span></label>
-          <input class="input" id="city" name="city" type="text" placeholder="e.g. Lindon" required>
-        </div>
-
-        <hr class="hr">
-
-        <!-- Parent / guardian -->
-        <p class="subhead">Parent / guardian</p>
-
-        <div class="field">
-          <label for="guardianName">Parent / guardian full name(s) <span class="req">*</span></label>
-          <input class="input" id="guardianName" name="guardianName" type="text" placeholder="Full name" required>
-        </div>
-        <div class="field">
-          <label for="guardianEmail">Parent / guardian email <span class="req">*</span></label>
-          <input class="input" id="guardianEmail" name="guardianEmail" type="email" placeholder="you@email.com" required>
-        </div>
-        <div class="field">
-          <label for="guardianPhone">Parent / guardian phone <span class="req">*</span></label>
-          <input class="input" id="guardianPhone" name="guardianPhone" type="tel" placeholder="(801) 555-0123" required>
-        </div>
-
-        <hr class="hr">
-
-        <!-- Availability -->
-        <p class="subhead">Availability</p>
-
-        <div class="field">
-          <label>Can you attend the Lindon Kids Market on August 8? <span class="req">*</span></label>
-          <span class="hint">Attendance is mandatory to participate in the series.</span>
-          <div class="choices">
-            <label class="choice"><input type="radio" name="market" value="yes" required> Yes, we can attend</label>
-            <label class="choice"><input type="radio" name="market" value="no"> No</label>
-          </div>
-        </div>
-
-        <div class="field">
-          <label>Available one hour each week (Mon&ndash;Sat), July 15 &ndash; Aug 8, for 3 weekly film visits? <span class="req">*</span></label>
-          <div class="choices">
-            <label class="choice"><input type="radio" name="avail" value="yes" required> Yes, fully available</label>
-            <label class="choice"><input type="radio" name="avail" value="mostly"> Mostly &mdash; I&rsquo;ll mark exceptions below</label>
-          </div>
-          <div id="availCalWrap" hidden>
-            <p class="small muted avail-summary" style="margin:8px 0 12px">Tap any date you&rsquo;re <b>NOT</b> available. Leave blank if you&rsquo;re free all dates.</p>
-            <div class="cal-legend">
-              <span><span class="sw" style="background:var(--panel);border:1px solid var(--line);"></span>Available</span>
-              <span><span class="sw" style="background:var(--accent);"></span>Marked unavailable</span>
-            </div>
-            <div class="availcal" data-availcal></div>
-          </div>
-          <input type="hidden" name="unavailable" id="unavailDates">
-        </div>
-
-        <hr class="hr">
-
-        <!-- Business -->
-        <p class="subhead">The business</p>
-
-        <div class="field">
-          <label for="businessPitch">What business are you pitching? <span class="req">*</span></label>
-          <span class="hint">It can be a business you already run, or a brand-new idea you haven&rsquo;t started yet.</span>
-          <textarea class="textarea" id="businessPitch" name="businessPitch" placeholder="Tell us about your business or idea" required></textarea>
-        </div>
-
-        <div class="field">
-          <label for="marketHistory">Have you participated in the Lindon Kids Market or another kids market before?</label>
-          <span class="hint">If so, when and where?</span>
-          <textarea class="textarea" id="marketHistory" name="marketHistory" placeholder="Optional"></textarea>
-        </div>
-
-        <hr class="hr">
-
-        <!-- The show -->
-        <p class="subhead">The Tuttle Twins Cartoon</p>
-        <div class="field">
-          <label>Have you seen the Tuttle Twins Cartoon? If so, how many seasons? <span class="req">*</span></label>
-          <div class="choices">
-            <label class="choice"><input type="radio" name="seenShow" value="Haven't seen it" required> Haven&rsquo;t seen it</label>
-            <label class="choice"><input type="radio" name="seenShow" value="One or less"> One or less</label>
-            <label class="choice"><input type="radio" name="seenShow" value="2-3"> 2-3</label>
-            <label class="choice"><input type="radio" name="seenShow" value="All of it"> All of it</label>
-          </div>
-        </div>
-
-        <hr class="hr">
-
-        <!-- Video uploads -->
-        <p class="subhead">Pitch videos</p>
-        <p class="small muted" style="margin-top:-2px">All videos must be filmed horizontal (landscape).</p>
-
-        <div class="field">
-          <label for="pitchVideo">Pitch video <span class="req">*</span></label>
-          <span class="hint">Max 30 seconds.</span>
-          <label class="upload" data-file-zone="pitchVideo">
-            <div class="ico">
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16V4"/><path d="M6 10l6-6 6 6"/><path d="M4 20h16"/></svg>
-            </div>
-            <div class="ttl">Upload pitch video</div>
-            <div class="sub">MP4 or MOV · landscape</div>
-            <input type="file" id="pitchVideo" name="pitchVideo" accept="video/*" required>
-            <span class="upload-progress-pct">0%</span>
-            <div class="upload-progress"><div class="upload-progress-fill"></div></div>
-          </label>
-        </div>
-
-        <div class="field">
-          <label for="introVideo">Introduction video <span class="req">*</span></label>
-          <span class="hint">Max 60 seconds · unedited.</span>
-          <label class="upload" data-file-zone="introVideo">
-            <div class="ico">
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16V4"/><path d="M6 10l6-6 6 6"/><path d="M4 20h16"/></svg>
-            </div>
-            <div class="ttl">Upload introduction</div>
-            <div class="sub">MP4 or MOV · landscape · no editing</div>
-            <input type="file" id="introVideo" name="introVideo" accept="video/*" required>
-            <span class="upload-progress-pct">0%</span>
-            <div class="upload-progress"><div class="upload-progress-fill"></div></div>
-          </label>
-        </div>
-
-        <div class="field">
-          <label for="parentVideo">Parent / guardian video <span class="req">*</span></label>
-          <span class="hint">Max 30 seconds · unedited.</span>
-          <label class="upload" data-file-zone="parentVideo">
-            <div class="ico">
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16V4"/><path d="M6 10l6-6 6 6"/><path d="M4 20h16"/></svg>
-            </div>
-            <div class="ttl">Upload parent video</div>
-            <div class="sub">MP4 or MOV · landscape · no editing</div>
-            <input type="file" id="parentVideo" name="parentVideo" accept="video/*" required>
-            <span class="upload-progress-pct">0%</span>
-            <div class="upload-progress"><div class="upload-progress-fill"></div></div>
-          </label>
-        </div>
-
-        <hr class="hr">
-
-        <!-- Consent -->
-        <p class="subhead">Consent &amp; release</p>
-        <div class="field">
-          <label for="signature">Parent/guardian Digital Signature <span class="req">*</span></label>
-          <span class="hint">Type your full legal name to acknowledge the consent &amp; release for filming and participation. Please <a href="assets/Tuttle_Twins_Submission_Release.pdf" target="_blank" rel="noopener" style="color:var(--ink);text-decoration:underline">read the Submission Release (PDF)</a> before signing.</span>
-          <input class="input" id="signature" name="signature" type="text" placeholder="Your full legal name" required style="font-family:'Caveat',cursive,system-ui;font-size:22px;">
-          <label class="choice" style="margin-top:10px;">
-            <input type="checkbox" id="consentAck" name="consentAck" required>
-            <span>I am the parent/guardian and I acknowledge the consent &amp; release by signing digitally.</span>
-          </label>
-          <label class="choice" style="margin-top:10px;">
-            <input type="checkbox" id="mediaUseAck" name="mediaUseAck" required onchange="this.checked && window.plausible && window.plausible('Media Consent Acknowledged')">
-            <span>I acknowledge that the video submissions may be used in the series even if we are not selected.</span>
-          </label>
-        </div>
-
-        <button type="submit" id="submitBtn" class="btn btn-block" style="margin-top:10px;">Submit application</button>
-        <div id="submitProgress" class="submit-progress" hidden>
-          <div class="submit-progress-track"><div class="submit-progress-fill" id="submitProgressFill"></div></div>
-          <div class="submit-progress-pct" id="submitProgressPct" aria-live="polite">Uploading videos… 0%</div>
-        </div>
-        <p class="small muted center" id="submitStatus" style="margin-top:12px;">By submitting you agree to be contacted about the series.</p>
-        <p class="small muted center" style="margin-top:8px;">Having trouble uploading? Email <a href="mailto:admin@tuttletwins.tv" style="color:var(--ink);text-decoration:underline">admin@tuttletwins.tv</a></p>
+        <button type="submit" class="btn btn-block" id="notifyBtn">Notify me next time</button>
+        <p class="small muted center" id="notifyStatus" style="margin-top:12px;">We&rsquo;ll only email you about a future casting call.</p>
       </form>
     </div>
   </section>
@@ -356,367 +183,33 @@
     </div>
   </footer>
 
-<script type="module">
-  // ===================================================================
-  // Real submit handler — uploads the three videos to Supabase Storage
-  // and inserts a row in the `applications` table. Schema lives in
-  // supabase-setup.sql; RLS lets anon INSERT but blocks every other
-  // verb so submitted apps are private once they land.
-  // ===================================================================
-  import { supabase, STORAGE_BUCKET } from "./supabase-client.js";
-
-  const form        = document.getElementById("applyForm");
-  const submitBtn   = document.getElementById("submitBtn");
-  const submitStat  = document.getElementById("submitStatus");
-  const submitProg     = document.getElementById("submitProgress");
-  const submitProgFill = document.getElementById("submitProgressFill");
-  const submitProgPct  = document.getElementById("submitProgressPct");
-  const TOTAL_VIDEOS   = 3;
-
-  // Overall upload progress (0–100) across all three videos, shown by
-  // the submit button so the kid sees movement without scrolling up.
-  function setOverallProgress(p, label) {
-    const c = Math.max(0, Math.min(100, Math.round(p)));
-    if (submitProgFill) submitProgFill.style.width = `${c}%`;
-    if (submitProgPct)  submitProgPct.textContent  = label || `Uploading videos… ${c}%`;
-  }
-
-  // Per-slot max video length (seconds). The form asks for 30s / 60s
-  // clips; we allow a small buffer and hard-block anything longer.
-  const MAX_DURATION = { pitchVideo: 40, introVideo: 70, parentVideo: 40 };
-
-  // Max file size. Matches the Supabase "application-videos" bucket limit
-  // (2 GB) so we only block files the server would reject anyway — no legit
-  // phone clip gets denied. Keep in sync if the bucket limit changes.
-  const MAX_UPLOAD_LABEL = "2 GB";
-  const MAX_UPLOAD_BYTES = 2 * 1024 * 1024 * 1024;
-
-  // Read a video file's duration via a throwaway <video> element.
-  // Resolves to seconds, or null if the browser can't read the metadata
-  // (in which case we don't block — better than rejecting a valid file).
-  function videoDuration(file) {
-    return new Promise((resolve) => {
-      try {
-        const v = document.createElement("video");
-        v.preload = "metadata";
-        v.onloadedmetadata = () => { const d = v.duration; URL.revokeObjectURL(v.src); resolve(isFinite(d) ? d : null); };
-        v.onerror = () => { URL.revokeObjectURL(v.src); resolve(null); };
-        v.src = URL.createObjectURL(file);
-      } catch (_) { resolve(null); }
-    });
-  }
-
-  // Show the chosen filename in each upload zone, and reject any clip
-  // longer than its slot's limit so over-length videos never upload.
-  document.querySelectorAll("[data-file-zone]").forEach((zone) => {
-    const input = zone.querySelector("input[type=file]");
-    const ttl   = zone.querySelector(".ttl");
-    const sub   = zone.querySelector(".sub");
-    const limit = MAX_DURATION[zone.dataset.fileZone] || 70;
-    const origTtl = ttl ? ttl.textContent : "";
-    const origSub = sub ? sub.textContent : "";
-    input.addEventListener("change", async () => {
-      const f = input.files && input.files[0];
-      if (!f) {
-        if (ttl) ttl.textContent = origTtl;
-        if (sub) { sub.textContent = origSub; sub.style.color = ""; }
-        return;
-      }
-      const mb = (f.size / (1024 * 1024)).toFixed(1);
-      if (ttl) ttl.textContent = f.name;
-      // Reject oversized files right here, before any upload is attempted.
-      if (f.size > MAX_UPLOAD_BYTES) {
-        input.value = "";
-        if (ttl) ttl.textContent = origTtl;
-        if (sub) { sub.textContent = `Too large — ${(f.size / 1073741824).toFixed(1)} GB. Max ${MAX_UPLOAD_LABEL}. Please use a smaller file.`; sub.style.color = "#b91c1c"; }
-        return;
-      }
-      if (sub) { sub.style.color = ""; sub.textContent = `${mb} MB · checking length…`; }
-      const dur = await videoDuration(f);
-      if (dur != null && dur > limit + 0.5) {
-        input.value = "";   // drop the file so it can't be submitted
-        if (ttl) ttl.textContent = origTtl;
-        if (sub) { sub.textContent = `Too long — ${Math.round(dur)}s. Max ${limit}s. Please trim and re-upload.`; sub.style.color = "#b91c1c"; }
-        return;
-      }
-      if (sub) sub.textContent = `${mb} MB${dur != null ? ` · ${Math.round(dur)}s` : ""} · tap to change`;
-    });
-  });
-
-  function setStatus(msg, isError) {
-    if (!submitStat) return;
-    submitStat.textContent = msg;
-    submitStat.style.color = isError ? "#b91c1c" : "";
-    submitStat.style.fontWeight = isError ? "700" : "";
-  }
-
-  form.addEventListener("submit", async (e) => {
-    e.preventDefault();
-    submitBtn.disabled = true;
-    submitBtn.textContent = "Submitting…";
-    setStatus("Hold tight — uploading your videos. This can take a minute on slower connections.", false);
-
-    // Snapshot every form value. Trim strings so accidental whitespace
-    // doesn't end up in the DB.
-    const val = (id) => (document.getElementById(id)?.value || "").trim();
-    const radio = (name) =>
-      (document.querySelector(`input[name="${name}"]:checked`)?.value || "");
-
-    const marketChoice = radio("market");      // 'yes' | 'no'
-    const availChoice  = radio("avail");        // 'yes' | 'mostly'
-
-    const payload = {
-      applicant_names:         val("applicantNames"),
-      applicant_ages:          val("applicantAges"),
-      city:                    val("city"),
-      guardian_name:           val("guardianName"),
-      guardian_email:          val("guardianEmail").toLowerCase(),
-      guardian_phone:          val("guardianPhone"),
-      can_attend_market:       marketChoice,
-      weekly_availability:     availChoice,
-      unavailable_dates:       (val("unavailDates") || "").split(",").map((s) => s.trim()).filter(Boolean),
-      business_pitch:          val("businessPitch"),
-      previous_market_history: val("marketHistory") || null,
-      seen_show:               radio("seenShow"),
-      signature:               val("signature"),
-      consent_acknowledged:    document.getElementById("consentAck").checked,
-      media_use_acknowledged:  document.getElementById("mediaUseAck").checked,
-      status:                  "pending",
-    };
-
-    const pitchFile  = document.getElementById("pitchVideo").files[0];
-    const introFile  = document.getElementById("introVideo").files[0];
-    const parentFile = document.getElementById("parentVideo").files[0];
-    if (!pitchFile || !introFile || !parentFile) {
-      setStatus("Please attach all three videos before submitting.", true);
-      submitBtn.disabled = false;
-      submitBtn.textContent = "Submit application";
-      return;
-    }
-
-    // Backstop: re-verify lengths at submit time in case metadata wasn't
-    // readable when the file was first picked.
-    for (const [name, file, limit] of [
-      ["pitch",  pitchFile,  MAX_DURATION.pitchVideo],
-      ["intro",  introFile,  MAX_DURATION.introVideo],
-      ["parent", parentFile, MAX_DURATION.parentVideo],
-    ]) {
-      if (file.size > MAX_UPLOAD_BYTES) {
-        setStatus(`Your ${name} video is ${(file.size / 1073741824).toFixed(1)} GB — the max is ${MAX_UPLOAD_LABEL}. Please use a smaller file.`, true);
-        submitBtn.disabled = false;
-        submitBtn.textContent = "Submit application";
-        return;
-      }
-      const dur = await videoDuration(file);
-      if (dur != null && dur > limit + 0.5) {
-        setStatus(`Your ${name} video is ${Math.round(dur)}s — the max is ${limit}s. Please trim it and re-upload.`, true);
-        submitBtn.disabled = false;
-        submitBtn.textContent = "Submit application";
-        return;
-      }
-    }
-
-    // We mint the application id client-side so each video can be
-    // namespaced by it before the row exists. The same id goes into
-    // the table row in the final insert.
-    const applicationId = crypto.randomUUID();
-
-    // Helper that uploads one video to <bucket>/<applicationId>/<slot>.<ext>
-    // and returns the storage path on success.
-    //
-    // We POST through XHR (instead of supabase.storage.upload) so we
-    // can wire upload.onprogress into a real per-file progress bar.
-    // supabase-js v2 doesn't expose progress callbacks; the storage
-    // REST endpoint that the JS client hits underneath is the same
-    // /storage/v1/object/{bucket}/{path} we hit here.
-    async function uploadVideo(slot, file, fileIndex) {
-      const ext = (file.name.split(".").pop() || "mp4").toLowerCase().replace(/[^a-z0-9]/g, "");
-      const path = `${applicationId}/${slot}.${ext || "mp4"}`;
-      const zoneId = `${slot}Video`;           // matches data-file-zone="..." in the form
-      const zone = document.querySelector(`[data-file-zone="${zoneId}"]`);
-      const fill = zone?.querySelector(".upload-progress-fill");
-      const pct  = zone?.querySelector(".upload-progress-pct");
-      const niceName = slot === "pitch" ? "pitch video"
-                     : slot === "intro" ? "introduction video"
-                     : "parent / guardian video";
-      const setPct = (p) => {
-        const clamped = Math.max(0, Math.min(100, Math.round(p)));
-        if (fill) fill.style.width = `${clamped}%`;
-        if (pct)  pct.textContent  = `${clamped}%`;
-        // Feed the overall bar: each video is 1/3 of the total, and name
-        // the video currently uploading so the bar is unmistakable.
-        const overall = (fileIndex * 100 + clamped) / TOTAL_VIDEOS;
-        setOverallProgress(overall, `Uploading ${niceName} (${fileIndex + 1} of 3) — ${Math.round(overall)}%`);
-      };
-      zone?.classList.add("uploading");
-      zone?.classList.remove("upload-done");
-      setPct(0);
-
-      // Project URL + anon key live in supabase-client.js — re-read
-      // them off the client we already imported so we don't repeat
-      // the constants here.
-      const baseUrl = supabase.storage.url.replace(/\/$/, "");
-      // baseUrl ends with /storage/v1; full target is /object/{bucket}/{path}
-      const target  = `${baseUrl}/object/${STORAGE_BUCKET}/${path}`;
-      const anon    = supabase.supabaseKey;
-
-      await new Promise((resolve, reject) => {
-        const xhr = new XMLHttpRequest();
-        xhr.open("POST", target);
-        xhr.setRequestHeader("Authorization", `Bearer ${anon}`);
-        xhr.setRequestHeader("apikey",        anon);
-        xhr.setRequestHeader("Content-Type",  file.type || "video/mp4");
-        xhr.setRequestHeader("x-upsert",      "false");
-        xhr.upload.onprogress = (e) => {
-          if (e.lengthComputable) setPct((e.loaded / e.total) * 100);
-        };
-        xhr.onload = () => {
-          if (xhr.status >= 200 && xhr.status < 300) {
-            setPct(100);
-            zone?.classList.add("upload-done");
-            zone?.classList.remove("uploading");
-            window.plausible && window.plausible('Video Upload Success', { props: { slot } });
-            resolve();
-          } else {
-            zone?.classList.remove("uploading");
-            // Surface the server's error message if it shipped one.
-            let msg = `HTTP ${xhr.status}`;
-            try {
-              const body = JSON.parse(xhr.responseText || "{}");
-              if (body.message) msg = body.message;
-            } catch (_) {}
-            reject(new Error(`${slot} video upload failed: ${msg}`));
-          }
-        };
-        xhr.onerror = () => {
-          zone?.classList.remove("uploading");
-          reject(new Error(`${slot} video upload failed: network error`));
-        };
-        xhr.send(file);
-      });
-      return path;
-    }
-
-    try {
-      if (submitProg) submitProg.hidden = false;
-      setOverallProgress(0);
-      setStatus("Uploading pitch video (1 of 3)…", false);
-      const pitchPath  = await uploadVideo("pitch",  pitchFile,  0);
-      setStatus("Uploading introduction video (2 of 3)…", false);
-      const introPath  = await uploadVideo("intro",  introFile,  1);
-      setStatus("Uploading parent / guardian video (3 of 3)…", false);
-      const parentPath = await uploadVideo("parent", parentFile, 2);
-
-      setOverallProgress(100, "Saving your application…");
-      setStatus("Saving your application…", false);
-      const { error: insErr } = await supabase
-        .from("applications")
-        .insert({
-          id: applicationId,
-          ...payload,
-          pitch_video_path:  pitchPath,
-          intro_video_path:  introPath,
-          parent_video_path: parentPath,
-        });
-      if (insErr) throw new Error(`Couldn't save your application: ${insErr.message}`);
-
-      window.plausible && window.plausible('Application Submitted');
-      // All good — redirect to the thank-you page. Pass only the
-      // applicant name(s) so the page can greet them; email stays
-      // out of the URL / browser history.
-      const q = new URLSearchParams({ names: payload.applicant_names });
-      window.location.href = `submitted.html?${q.toString()}`;
-    } catch (err) {
-      console.error(err);
-      if (submitProg) submitProg.hidden = true;
-      setStatus(`${err.message || "Something went wrong — please try again."}`, true);
-      submitBtn.disabled = false;
-      submitBtn.textContent = "Submit application";
-    }
-  });
-</script>
 <script>
-  // Availability calendar — tap dates you're NOT available (Jul 15 – Aug 8, Mon–Sat)
-  (function(){
-    var root = document.querySelector('[data-availcal]');
-    if(!root) return;
-    var hidden = document.getElementById('unavailDates');
-    var summary = document.querySelector('.avail-summary');
-    var now = new Date();
-    var y = now.getFullYear();
-    var rangeStart = new Date(y,6,15), rangeEnd = new Date(y,7,8);
-    if(now > rangeEnd){ y++; rangeStart = new Date(y,6,15); rangeEnd = new Date(y,7,8); }
-    var DOW = ['Su','Mo','Tu','We','Th','Fr','Sa'];
-    var MON = ['January','February','March','April','May','June','July','August','September','October','November','December'];
-    var selected = {};
-    function key(d){ return d.getFullYear()+'-'+(d.getMonth()+1)+'-'+d.getDate(); }
-    function inRange(d){ return d >= rangeStart && d <= rangeEnd; }
-    function renderMonth(year, month){
-      var startDow = new Date(year, month, 1).getDay();
-      var days = new Date(year, month+1, 0).getDate();
-      var cells = [];
-      for(var i=0;i<startDow;i++) cells.push(null);
-      for(var day=1; day<=days; day++) cells.push(day);
-      while(cells.length % 7) cells.push(null);
-      var rows = '';
-      for(var w=0; w<cells.length; w+=7){
-        var week = cells.slice(w, w+7);
-        var keep = week.some(function(day){ return day && inRange(new Date(year, month, day)); });
-        if(!keep) continue;
-        week.forEach(function(day){
-          if(!day){ rows += '<div class="cal-cell empty"></div>'; return; }
-          var d = new Date(year, month, day);
-          var pickable = inRange(d) && d.getDay() !== 0;
-          var cls = 'cal-cell' + (pickable ? '' : ' out') + (selected[key(d)] ? ' off' : '');
-          rows += '<div class="'+cls+'" '+(pickable ? 'data-k="'+key(d)+'" role="button" tabindex="0"' : '')+'>'+day+'</div>';
+  // Notify-me signup via Netlify Forms (AJAX so we can show an inline thank-you).
+  (function () {
+    var form = document.getElementById("notifyForm");
+    if (!form) return;
+    var btn = document.getElementById("notifyBtn");
+    var statusEl = document.getElementById("notifyStatus");
+    form.addEventListener("submit", function (e) {
+      e.preventDefault();
+      var email = (document.getElementById("notifyEmail").value || "").trim();
+      if (!email) return;
+      btn.disabled = true; btn.textContent = "Saving…";
+      var body = new URLSearchParams({ "form-name": "notify-me", email: email }).toString();
+      fetch("/", { method: "POST", headers: { "Content-Type": "application/x-www-form-urlencoded" }, body: body })
+        .then(function (r) {
+          if (!r.ok) throw new Error("HTTP " + r.status);
+          var field = form.querySelector(".field"); if (field) field.style.display = "none";
+          btn.style.display = "none";
+          statusEl.style.color = "";
+          statusEl.textContent = "Thanks! We’ll email you if we run this again.";
+          if (window.plausible) window.plausible("Notify Signup");
+        })
+        .catch(function () {
+          btn.disabled = false; btn.textContent = "Notify me next time";
+          statusEl.style.color = "#b91c1c";
+          statusEl.textContent = "Something went wrong — please email admin@tuttletwins.tv instead.";
         });
-      }
-      var dow = DOW.map(function(d){ return '<div class="cal-dow">'+d+'</div>'; }).join('');
-      return '<div class="cal-month"><div class="cal-title">'+MON[month]+' '+year+'</div><div class="cal-grid">'+dow+rows+'</div></div>';
-    }
-    function updateSummary(){
-      var keys = Object.keys(selected).filter(function(k){ return selected[k]; });
-      hidden.value = keys.join(',');
-      if(summary){
-        summary.innerHTML = keys.length
-          ? '<b>'+keys.length+'</b> date'+(keys.length>1?'s':'')+' marked unavailable. Tap a date to toggle.'
-          : 'Tap any date you’re <b>NOT</b> available. Leave blank if you’re free all dates.';
-      }
-    }
-    function toggle(c){
-      var k = c.getAttribute('data-k');
-      selected[k] = !selected[k];
-      c.classList.toggle('off');
-      updateSummary();
-    }
-    root.innerHTML = renderMonth(y,6) + renderMonth(y,7);
-    root.addEventListener('click', function(e){
-      var c = e.target.closest('[data-k]'); if(c) toggle(c);
-    });
-    root.addEventListener('keydown', function(e){
-      if((e.key===' '||e.key==='Enter')){ var c=e.target.closest('[data-k]'); if(c){ e.preventDefault(); toggle(c); } }
-    });
-    updateSummary();
-
-    // The calendar only makes sense when "Mostly" is chosen. Hide it for
-    // "fully available" and clear any dates that were marked, so the two
-    // answers can't contradict each other.
-    var wrap = document.getElementById('availCalWrap');
-    function clearSelections(){
-      selected = {};
-      root.innerHTML = renderMonth(y,6) + renderMonth(y,7);
-      updateSummary();
-    }
-    document.querySelectorAll('input[name="avail"]').forEach(function(r){
-      r.addEventListener('change', function(){
-        if(!r.checked) return;
-        if(r.value === 'mostly'){
-          if(wrap) wrap.hidden = false;
-        } else {
-          if(wrap) wrap.hidden = true;
-          clearSelections();
-        }
-      });
     });
   })();
 </script>
