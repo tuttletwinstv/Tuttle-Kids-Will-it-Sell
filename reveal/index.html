@@ -39,6 +39,48 @@
   }
   .screen.active { display: flex; }
 
+  /* the two break-even hype screens */
+  .screen.tight { gap: 2.2dvh; }
+  .kicker {
+    font-size: min(4.2dvh, 3.2vw);
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    color: #5b6b7b;
+    margin: 0;
+    line-height: 1.4;
+  }
+  .mega {
+    font-size: min(13dvh, 9.5vw);
+    font-weight: 900;
+    line-height: 1.02;
+    letter-spacing: -0.02em;
+    color: var(--navy);
+    margin: 0;
+  }
+  .golden {
+    font-size: min(4dvh, 3.1vw);
+    font-weight: 700;
+    font-style: italic;
+    color: #a07714;
+    margin: 0;
+  }
+  .punch {
+    font-size: min(7dvh, 5.4vw);
+    font-weight: 800;
+    color: var(--navy);
+    margin: 0;
+  }
+  .punch .accent { color: var(--red); text-decoration: underline; text-underline-offset: 0.12em; }
+  .money {
+    font-size: min(26dvh, 19vw);
+    font-weight: 900;
+    line-height: 1;
+    letter-spacing: -0.03em;
+    color: var(--red);
+    margin: 0;
+    text-shadow: 0 4px 0 rgba(29, 53, 87, 0.12);
+  }
   .volume-hint {
     font-size: min(4.5dvh, 3.6vw);
     font-weight: 700;
@@ -168,15 +210,18 @@
     <button class="btn" id="btn-rolling">🎥 I'm rolling</button>
   </section>
 
-  <section class="screen" id="screen-trophy">
-    <p class="prompt">🏆 To be considered for Kidtrepreneur of the Year
-      (and to win the legendary golden trophy of glory) you must break even.</p>
+  <section class="screen tight" id="screen-trophy">
+    <p class="kicker">To be considered for</p>
+    <h2 class="mega">Kidtrepreneur<br />of the Year</h2>
+    <p class="golden">🏆 and to win the legendary golden trophy of glory 🏆</p>
+    <p class="punch">you must <span class="accent">break&nbsp;even</span>.</p>
     <button class="btn" id="btn-trophy">Got it</button>
   </section>
 
-  <section class="screen" id="screen-breakeven">
-    <p class="prompt">Based off of your expense report, you need to make at least
-      <strong id="breakeven-amount" style="color: var(--red)"></strong> to break even.</p>
+  <section class="screen tight" id="screen-breakeven">
+    <p class="kicker">Based off of your expense report,<br />you need to make at least</p>
+    <p class="money" id="breakeven-amount"></p>
+    <p class="punch">to break even.</p>
     <button class="btn" id="btn-breakeven">I'm ready</button>
   </section>
 
@@ -203,11 +248,11 @@
   // breakEven: dollars needed to break even (from each kid's expense report).
   // null → shows "$XX" until the real numbers go in.
   const KIDS = {
-    "roy-and-beth":      { name: "Roy and Beth",      breakEven: null },
-    "bella-and-bentley": { name: "Bella and Bentley", breakEven: null },
-    "henry":             { name: "Henry",             breakEven: null },
+    "roy-and-beth":      { name: "Roy and Beth",      breakEven: 368 },
+    "bella-and-bentley": { name: "Bella and Bentley", breakEven: 162 },
+    "henry":             { name: "Henry",             breakEven: 191 },
     "savannah":          { name: "Savannah",          breakEven: null },
-    "robert":            { name: "Robert",            breakEven: null },
+    "robert":            { name: "Robert",            breakEven: 213 },
     "archer":            { name: "Archer",            breakEven: null },
   };
 
