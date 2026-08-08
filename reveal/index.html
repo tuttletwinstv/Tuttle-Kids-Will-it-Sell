@@ -290,6 +290,7 @@
   });
 
   document.getElementById("btn-breakeven").addEventListener("click", () => {
+    stopTheme(); // music out before the countdown begins
     // Prime playback inside the tap gesture so iOS lets us start the video
     // (with sound) programmatically when the countdown hits zero.
     video.play().then(() => {
@@ -320,7 +321,7 @@
   }
 
   function playVideo() {
-    stopTheme();
+    stopTheme(); // no-op normally; safety net if the countdown was skipped
     show("screen-video");
     video.currentTime = 0;
     video.play().catch(() => {
