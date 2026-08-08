@@ -39,6 +39,12 @@
   }
   .screen.active { display: flex; }
 
+  .volume-hint {
+    font-size: min(4.5dvh, 3.6vw);
+    font-weight: 700;
+    margin: 0;
+    color: var(--red);
+  }
   .logo {
     position: absolute;
     top: max(12px, env(safe-area-inset-top));
@@ -154,6 +160,7 @@
     <img class="logo" src="../assets/tuttle-twins-logo.png" alt="Tuttle Twins" />
     <h1 class="kid-name" id="kid-name"></h1>
     <button class="btn" id="btn-start">Click here</button>
+    <p class="volume-hint">🔊 Turn your volume all the way up!</p>
   </section>
 
   <section class="screen" id="screen-record">
@@ -222,7 +229,57 @@
     document.getElementById(id).classList.add("active");
   }
 
-  document.getElementById("btn-start").addEventListener("click", () => show("screen-record"));
+  // --- theme music: plays quietly under all the text screens, out before
+  // the video. Web Audio + GainNode because iOS ignores <audio>.volume.
+  const themeBytes = fetch("./theme.m4a")
+    .then((r) => (r.ok ? r.arrayBuffer() : null))
+    .catch(() => null);
+  let themeCtx = null;
+  let themeGain = null;
+
+  function startTheme() {
+    if (themeCtx) return;
+    try {
+      // Create + resume synchronously inside the tap so iOS unlocks audio.
+      themeCtx = new (window.AudioContext || window.webkitAudioContext)();
+      themeCtx.resume();
+    } catch {
+      return; // no Web Audio → silent flow, everything else still works
+    }
+    themeBytes.then(async (bytes) => {
+      if (!bytes || !themeCtx) return;
+      try {
+        const buf = await themeCtx.decodeAudioData(bytes.slice(0));
+        themeGain = themeCtx.createGain();
+        themeGain.gain.value = 0;
+        themeGain.connect(themeCtx.destination);
+        const src = themeCtx.createBufferSource();
+        src.buffer = buf;
+        src.loop = true;
+        src.connect(themeGain);
+        src.start();
+        themeGain.gain.linearRampToValueAtTime(0.16, themeCtx.currentTime + 1.5);
+      } catch { /* bad decode — stay silent */ }
+    });
+  }
+
+  function stopTheme() {
+    if (!themeCtx) return;
+    const ctx = themeCtx;
+    themeCtx = null;
+    try {
+      const t = ctx.currentTime;
+      themeGain.gain.cancelScheduledValues(t);
+      themeGain.gain.setValueAtTime(themeGain.gain.value, t);
+      themeGain.gain.linearRampToValueAtTime(0, t + 0.4);
+    } catch { /* fall through to close */ }
+    setTimeout(() => ctx.close().catch(() => {}), 500);
+  }
+
+  document.getElementById("btn-start").addEventListener("click", () => {
+    startTheme();
+    show("screen-record");
+  });
 
   document.getElementById("btn-rolling").addEventListener("click", () => show("screen-trophy"));
 
@@ -263,6 +320,7 @@
   }
 
   function playVideo() {
+    stopTheme();
     show("screen-video");
     video.currentTime = 0;
     video.play().catch(() => {
