@@ -3,3 +3,6 @@
 /final-faqs       /faqs        301
 /final-success    /success     301
 /final-submitted  /submitted   301
+
+# Will It Sell reveal experience — one pretty link per kid
+/reveal/:slug     /reveal/index.html   200

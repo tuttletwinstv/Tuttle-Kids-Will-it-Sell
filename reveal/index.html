@@ -1,0 +1,262 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+<meta name="robots" content="noindex" />
+<title>Tuttle Kids · Will It Sell?</title>
+<style>
+  :root {
+    --navy: #1d3557;
+    --red: #e63946;
+    --cream: #fdf6ec;
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body {
+    margin: 0;
+    height: 100%;
+    overflow: hidden;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    background: var(--cream);
+    color: var(--navy);
+    touch-action: manipulation;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+
+  .screen {
+    position: fixed;
+    inset: 0;
+    height: 100dvh;
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 4dvh;
+    text-align: center;
+    padding: max(16px, env(safe-area-inset-top)) max(24px, env(safe-area-inset-right))
+             max(16px, env(safe-area-inset-bottom)) max(24px, env(safe-area-inset-left));
+  }
+  .screen.active { display: flex; }
+
+  .logo {
+    position: absolute;
+    top: max(12px, env(safe-area-inset-top));
+    left: 50%;
+    transform: translateX(-50%);
+    height: 9dvh;
+    max-height: 44px;
+  }
+
+  h1.kid-name {
+    font-size: min(13dvh, 15vw);
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    margin: 0;
+    line-height: 1.05;
+  }
+  .prompt {
+    font-size: min(6.5dvh, 5.2vw);
+    font-weight: 600;
+    margin: 0;
+    max-width: 82vw;
+    line-height: 1.25;
+  }
+
+  .btn {
+    font: inherit;
+    font-size: min(6.5dvh, 5vw);
+    font-weight: 800;
+    color: #fff;
+    background: var(--red);
+    border: 0;
+    border-radius: 999px;
+    padding: 2.4dvh 7vw;
+    cursor: pointer;
+    box-shadow: 0 4px 14px rgba(230, 57, 70, 0.35);
+    transition: transform 0.1s;
+  }
+  .btn:active { transform: scale(0.96); }
+
+  /* countdown */
+  #screen-countdown { background: var(--navy); }
+  #count-num {
+    font-size: 62dvh;
+    font-weight: 900;
+    color: var(--cream);
+    line-height: 1;
+    margin: 0;
+    animation: pop 1s ease-out infinite;
+  }
+  @keyframes pop {
+    0% { transform: scale(1.18); opacity: 0.4; }
+    18% { transform: scale(1); opacity: 1; }
+    100% { transform: scale(0.97); opacity: 0.95; }
+  }
+
+  /* video */
+  #screen-video { background: #000; padding: 0; }
+  #reveal-video {
+    width: 100vw;
+    height: 100dvh;
+    object-fit: contain;
+    background: #000;
+  }
+
+  /* end screen */
+  #screen-end { background: var(--navy); color: var(--cream); }
+  #screen-end .prompt { color: var(--cream); }
+
+  /* gates: wrong orientation / not a phone / bad link */
+  .gate {
+    position: fixed;
+    inset: 0;
+    z-index: 50;
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 3dvh;
+    background: var(--cream);
+    text-align: center;
+    padding: 24px;
+    font-size: clamp(18px, 4dvh, 28px);
+    font-weight: 700;
+  }
+  .gate .big { font-size: 2.2em; }
+
+  /* portrait on a phone → ask for landscape */
+  @media (orientation: portrait) and (max-width: 500px) {
+    #gate-rotate { display: flex; }
+  }
+  /* big screens (both dimensions large) → phones only */
+  @media (min-width: 501px) and (min-height: 501px) {
+    #gate-desktop { display: flex; }
+  }
+</style>
+</head>
+<body>
+
+  <div class="gate" id="gate-rotate">
+    <div class="big">📱↻</div>
+    <div>Turn your phone sideways!</div>
+  </div>
+  <div class="gate" id="gate-desktop">
+    <div class="big">📵💻</div>
+    <div>This works on a phone.<br />Open the link there!</div>
+  </div>
+  <div class="gate" id="gate-badlink">
+    <div class="big">🤔</div>
+    <div>Hmm, that link doesn't look right.<br />Ask for a fresh one!</div>
+  </div>
+
+  <section class="screen" id="screen-landing">
+    <img class="logo" src="../assets/tuttle-twins-logo.png" alt="Tuttle Twins" />
+    <h1 class="kid-name" id="kid-name"></h1>
+    <button class="btn" id="btn-start">Click here</button>
+  </section>
+
+  <section class="screen" id="screen-record">
+    <p class="prompt">Please start recording<br />on your phone before proceeding</p>
+    <button class="btn" id="btn-rolling">🎥 I'm rolling</button>
+  </section>
+
+  <section class="screen" id="screen-countdown">
+    <p id="count-num">10</p>
+  </section>
+
+  <section class="screen" id="screen-video">
+    <video id="reveal-video" playsinline preload="auto"></video>
+  </section>
+
+  <section class="screen" id="screen-end">
+    <img class="logo" src="../assets/tuttle-twins-logo.png" alt="Tuttle Twins" />
+    <p class="prompt">🎬 That's a wrap!</p>
+    <button class="btn" id="btn-replay">Play it again</button>
+  </section>
+
+<script>
+  const KIDS = {
+    "roy-and-beth":      { name: "Roy and Beth" },
+    "bella-and-bentley": { name: "Bella and Bentley" },
+    "henry":             { name: "Henry" },
+    "savannah":          { name: "Savannah" },
+    "robert":            { name: "Robert" },
+    "archer":            { name: "Archer" },
+  };
+
+  // Slug comes from /reveal/<slug> (Netlify rewrite) or ?k=<slug>.
+  const path = location.pathname.replace(/\/+$/, "");
+  const slug = new URLSearchParams(location.search).get("k")
+    || (path.split("/").pop() !== "reveal" && path.split("/").pop() !== "index.html"
+        ? path.split("/").pop() : "");
+  const kid = KIDS[slug];
+
+  const video = document.getElementById("reveal-video");
+
+  if (!kid) {
+    document.getElementById("gate-badlink").style.display = "flex";
+  } else {
+    document.getElementById("kid-name").textContent = kid.name;
+    video.src = kid.video || `./videos/${slug}.mp4`;
+    video.load(); // start buffering while they read the first screens
+    show("screen-landing");
+  }
+
+  function show(id) {
+    document.querySelectorAll(".screen").forEach((s) => s.classList.remove("active"));
+    document.getElementById(id).classList.add("active");
+  }
+
+  document.getElementById("btn-start").addEventListener("click", () => show("screen-record"));
+
+  document.getElementById("btn-rolling").addEventListener("click", () => {
+    // Prime playback inside the tap gesture so iOS lets us start the video
+    // (with sound) programmatically when the countdown hits zero.
+    video.play().then(() => {
+      video.pause();
+      video.currentTime = 0;
+    }).catch(() => { /* will retry at countdown end */ });
+    keepAwake();
+    startCountdown(10);
+  });
+
+  function startCountdown(from) {
+    show("screen-countdown");
+    const num = document.getElementById("count-num");
+    let n = from;
+    num.textContent = n;
+    const tick = setInterval(() => {
+      n -= 1;
+      if (n <= 0) {
+        clearInterval(tick);
+        playVideo();
+        return;
+      }
+      num.textContent = n;
+      num.style.animation = "none";
+      void num.offsetWidth; // restart the pop animation
+      num.style.animation = "";
+    }, 1000);
+  }
+
+  function playVideo() {
+    show("screen-video");
+    video.currentTime = 0;
+    video.play().catch(() => {
+      // Autoplay refused (rare after priming) — one tap anywhere starts it.
+      const resume = () => { video.play(); video.removeEventListener("click", resume); };
+      video.addEventListener("click", resume);
+    });
+  }
+
+  video.addEventListener("ended", () => show("screen-end"));
+  document.getElementById("btn-replay").addEventListener("click", playVideo);
+
+  // Best-effort: keep the screen from dimming during countdown + video.
+  async function keepAwake() {
+    try { await navigator.wakeLock.request("screen"); } catch { /* unsupported */ }
+  }
+</script>
+</body>
+</html>
