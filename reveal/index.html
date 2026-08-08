@@ -304,7 +304,21 @@
     }, 50);
   }
 
+  // Hide the browser chrome where the platform allows it. Android fully
+  // supports page fullscreen (+ orientation lock once fullscreen); iPhone
+  // Safari has no fullscreen API for pages, so there the dvh-based layout
+  // simply adapts to whatever space the address bar leaves.
+  async function goFullscreen() {
+    const el = document.documentElement;
+    try {
+      if (el.requestFullscreen) await el.requestFullscreen({ navigationUI: "hide" });
+      else if (el.webkitRequestFullscreen) el.webkitRequestFullscreen();
+    } catch { /* not supported (iOS) or denied — layout still fits */ }
+    try { await screen.orientation.lock("landscape"); } catch { /* needs fullscreen */ }
+  }
+
   document.getElementById("btn-start").addEventListener("click", () => {
+    goFullscreen();
     startTheme();
     show("screen-record");
   });
