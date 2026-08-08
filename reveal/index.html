@@ -188,6 +188,11 @@
     <video id="reveal-video" playsinline preload="auto"></video>
   </section>
 
+  <!-- Theme song: attenuation is baked into the file itself, so it plays
+       "quietly" through the exact same media path as the video — no iOS
+       Web Audio / volume-property quirks involved. -->
+  <audio id="theme-audio" src="./theme.m4a" loop preload="auto"></audio>
+
   <section class="screen" id="screen-end">
     <img class="logo" src="../assets/tuttle-twins-logo.png" alt="Tuttle Twins" />
     <p class="prompt">🎬 That's a wrap!</p>
@@ -230,50 +235,28 @@
   }
 
   // --- theme music: plays quietly under all the text screens, out before
-  // the video. Web Audio + GainNode because iOS ignores <audio>.volume.
-  const themeBytes = fetch("./theme.m4a")
-    .then((r) => (r.ok ? r.arrayBuffer() : null))
-    .catch(() => null);
-  let themeCtx = null;
-  let themeGain = null;
+  // the countdown. The "quiet" is baked into theme.m4a itself; playback is
+  // a plain looping <audio> element (the one path iOS reliably honors).
+  const themeAudio = document.getElementById("theme-audio");
 
   function startTheme() {
-    if (themeCtx) return;
-    try {
-      // Create + resume synchronously inside the tap so iOS unlocks audio.
-      themeCtx = new (window.AudioContext || window.webkitAudioContext)();
-      themeCtx.resume();
-    } catch {
-      return; // no Web Audio → silent flow, everything else still works
-    }
-    themeBytes.then(async (bytes) => {
-      if (!bytes || !themeCtx) return;
-      try {
-        const buf = await themeCtx.decodeAudioData(bytes.slice(0));
-        themeGain = themeCtx.createGain();
-        themeGain.gain.value = 0;
-        themeGain.connect(themeCtx.destination);
-        const src = themeCtx.createBufferSource();
-        src.buffer = buf;
-        src.loop = true;
-        src.connect(themeGain);
-        src.start();
-        themeGain.gain.linearRampToValueAtTime(0.16, themeCtx.currentTime + 1.5);
-      } catch { /* bad decode — stay silent */ }
-    });
+    themeAudio.play().catch(() => { /* blocked → flow continues silently */ });
   }
 
   function stopTheme() {
-    if (!themeCtx) return;
-    const ctx = themeCtx;
-    themeCtx = null;
-    try {
-      const t = ctx.currentTime;
-      themeGain.gain.cancelScheduledValues(t);
-      themeGain.gain.setValueAtTime(themeGain.gain.value, t);
-      themeGain.gain.linearRampToValueAtTime(0, t + 0.4);
-    } catch { /* fall through to close */ }
-    setTimeout(() => ctx.close().catch(() => {}), 500);
+    if (themeAudio.paused) return;
+    // Best-effort 0.4s fade — iOS ignores .volume writes, so worst case
+    // the music just stops cleanly when the timer ends.
+    const steps = 8;
+    let n = 0;
+    const fade = setInterval(() => {
+      n += 1;
+      try { themeAudio.volume = Math.max(0, 1 - n / steps); } catch { /* iOS */ }
+      if (n >= steps) {
+        clearInterval(fade);
+        themeAudio.pause();
+      }
+    }, 50);
   }
 
   document.getElementById("btn-start").addEventListener("click", () => {
