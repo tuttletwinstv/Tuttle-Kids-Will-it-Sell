@@ -161,6 +161,18 @@
     <button class="btn" id="btn-rolling">🎥 I'm rolling</button>
   </section>
 
+  <section class="screen" id="screen-trophy">
+    <p class="prompt">🏆 To be considered for Kidtrepreneur of the Year
+      (and to win the legendary golden trophy of glory) you must break even.</p>
+    <button class="btn" id="btn-trophy">Got it</button>
+  </section>
+
+  <section class="screen" id="screen-breakeven">
+    <p class="prompt">Based off of your expense report, you need to make at least
+      <strong id="breakeven-amount" style="color: var(--red)"></strong> to break even.</p>
+    <button class="btn" id="btn-breakeven">I'm ready</button>
+  </section>
+
   <section class="screen" id="screen-countdown">
     <p id="count-num">10</p>
   </section>
@@ -176,13 +188,15 @@
   </section>
 
 <script>
+  // breakEven: dollars needed to break even (from each kid's expense report).
+  // null → shows "$XX" until the real numbers go in.
   const KIDS = {
-    "roy-and-beth":      { name: "Roy and Beth" },
-    "bella-and-bentley": { name: "Bella and Bentley" },
-    "henry":             { name: "Henry" },
-    "savannah":          { name: "Savannah" },
-    "robert":            { name: "Robert" },
-    "archer":            { name: "Archer" },
+    "roy-and-beth":      { name: "Roy and Beth",      breakEven: null },
+    "bella-and-bentley": { name: "Bella and Bentley", breakEven: null },
+    "henry":             { name: "Henry",             breakEven: null },
+    "savannah":          { name: "Savannah",          breakEven: null },
+    "robert":            { name: "Robert",            breakEven: null },
+    "archer":            { name: "Archer",            breakEven: null },
   };
 
   // Slug comes from /reveal/<slug> (Netlify rewrite) or ?k=<slug>.
@@ -210,7 +224,15 @@
 
   document.getElementById("btn-start").addEventListener("click", () => show("screen-record"));
 
-  document.getElementById("btn-rolling").addEventListener("click", () => {
+  document.getElementById("btn-rolling").addEventListener("click", () => show("screen-trophy"));
+
+  document.getElementById("btn-trophy").addEventListener("click", () => {
+    document.getElementById("breakeven-amount").textContent =
+      kid.breakEven == null ? "$XX" : `$${kid.breakEven}`;
+    show("screen-breakeven");
+  });
+
+  document.getElementById("btn-breakeven").addEventListener("click", () => {
     // Prime playback inside the tap gesture so iOS lets us start the video
     // (with sound) programmatically when the countdown hits zero.
     video.play().then(() => {
